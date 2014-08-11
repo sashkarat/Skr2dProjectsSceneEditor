@@ -2,18 +2,20 @@ package org.skr.Skr2dProjectsSceneEditor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglAWTCanvas;
-import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.PropertiesBaseTableModel;
-import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.PropertiesCellEditor;
-import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.PropertiesTableCellRenderer;
-import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.ScenePropertiesTableModel;
+import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.*;
 import org.skr.Skr2dProjectsSceneEditor.gdx.SkrGdxAppSceneEditor;
+import org.skr.Skr2dProjectsSceneEditor.gdx.screens.EditorScreen;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
+import org.skr.gdx.scene.Layer;
 import org.skr.gdx.scene.PhysScene;
+import org.skr.gdx.scene.TiledActor;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -46,14 +48,24 @@ public class MainGui extends JFrame {
     private JTextField tfTexAtlasFilePath;
     private JButton btnBrowseTexAtlasFile;
     private JPanel panelProperties;
+    private JButton btnAddNode;
+    private JButton btnRemoveNode;
+    private JCheckBox chbDisplayGrid;
+    private JCheckBox chbDisplayGridFirst;
+    private JCheckBox chbDebugRender;
 
 
     SkrGdxAppSceneEditor gApp;
     PhysScene scene;
     String sceneAbsolutePath = "";
+    DefaultTreeModel treeSceneModel;
+    DefaultTableModel defaultTableModel = new DefaultTableModel();
 
     private PropertiesCellEditor propertiesCellEditor;
     private ScenePropertiesTableModel scenePropertiesTableModel;
+    private LayerPropertiesTableModel layerPropertiesTableModel;
+    private TiledActorPropertiesTableModel tiledActorPropertiesTableModel;
+    private AagPropertiesTableModel aagPropertiesTableModel;
 
 
     MainGui() {
@@ -75,6 +87,9 @@ public class MainGui extends JFrame {
         PhysScene.setSceneStateListener( sceneStateListener );
 
         scenePropertiesTableModel = new ScenePropertiesTableModel( treeScene );
+        layerPropertiesTableModel = new LayerPropertiesTableModel( treeScene );
+        tiledActorPropertiesTableModel = new TiledActorPropertiesTableModel( treeScene );
+        aagPropertiesTableModel=  new AagPropertiesTableModel( treeScene );
 
         JTableHeader th = tableProperties.getTableHeader();
         panelProperties.add(th, BorderLayout.NORTH);
@@ -84,6 +99,16 @@ public class MainGui extends JFrame {
                 propertiesCellEditor );
         tableProperties.setDefaultRenderer(PropertiesBaseTableModel.Property.class,
                 new PropertiesTableCellRenderer() );
+
+        Gdx.app.postRunnable( new Runnable() {
+            @Override
+            public void run() {
+                EditorScreen es = gApp.getEditorScreen();
+                chbDebugRender.setSelected( es.isDoDebugRender() );
+                chbDisplayGrid.setSelected( es.isDisplayGrid() );
+                chbDisplayGridFirst.setSelected( es.isDisplayGridFirst() );
+            }
+        });
 
         btnNewScene.addActionListener(new ActionListener() {
             @Override
@@ -119,6 +144,37 @@ public class MainGui extends JFrame {
             @Override
             public void valueChanged(TreeSelectionEvent e) {
                 processJTreeSelection( e );
+            }
+        });
+        btnAddNode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addNode();
+            }
+        });
+        btnRemoveNode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                removeNode();
+            }
+        });
+
+        chbDisplayGrid.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                gApp.getEditorScreen().setDisplayGrid( chbDisplayGrid.isSelected() );
+            }
+        });
+        chbDisplayGridFirst.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                gApp.getEditorScreen().setDisplayGridFirst( chbDisplayGridFirst.isSelected() );
+            }
+        });
+        chbDebugRender.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                gApp.getEditorScreen().setDoDebugRender( chbDebugRender.isSelected() );
             }
         });
     }
@@ -292,26 +348,49 @@ public class MainGui extends JFrame {
         ApplicationSettings.get().setTextureAtlasFile( tfTexAtlasFilePath.getText() );
     }
 
+
     void loadJTree() {
 
         if ( scene == null ) {
+            treeSceneModel = null;
             treeScene.setModel( new DefaultTreeModel( null ) );
             return;
         }
 
-        SceneTreeNode rootNode = new SceneTreeNode(SceneTreeNode.Type.ROOT );
-        rootNode.setUserObject( scene );
+        SceneTreeNode rootNode = new SceneTreeNode(SceneTreeNode.Type.ROOT, scene );
 
-        DefaultTreeModel treeSceneModel = new DefaultTreeModel( rootNode );
-        SceneTreeNode layersGroupNode = new SceneTreeNode(SceneTreeNode.Type.LAYERS_GROUP );
-        layersGroupNode.setUserObject( scene );
+        treeSceneModel = new DefaultTreeModel( rootNode );
+        SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP, scene );
+        loadLayerNodes( layersGroupNode );
         rootNode.add( layersGroupNode );
         treeScene.setModel( treeSceneModel );
         Gdx.app.log("MainGui.loadJTree", " OK");
     }
 
+    void loadLayerNodes( SceneTreeNode parentNode ) {
+        for (Layer l : scene.getBackLayers() ) {
+            SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.LAYER, l );
+            loadTiledActorNodes( node );
+            parentNode.add( node );
+        }
+    }
+
+    void loadTiledActorNodes( SceneTreeNode parentNode) {
+        Layer l = (Layer) parentNode.getUserObject();
+        for (TiledActor ta : l.getActors() ) {
+            SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, ta );
+            if ( ta.getAag() != null ) {
+                SceneTreeNode aagNode = new SceneTreeNode(SceneTreeNode.Type.AAG,
+                        ta.getAag() );
+                node.add( aagNode );
+            }
+            parentNode.add( node );
+        }
+    }
+
     void processJTreeSelection( TreeSelectionEvent e ) {
         propertiesCellEditor.cancelEditing();
+        tableProperties.setModel( defaultTableModel );
         SceneTreeNode node = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
         if ( node == null )
             return;
@@ -322,6 +401,8 @@ public class MainGui extends JFrame {
                 tableProperties.setModel( scenePropertiesTableModel );
                 break;
             case LAYER:
+                layerPropertiesTableModel.setLayer((Layer) node.getUserObject());
+                tableProperties.setModel( layerPropertiesTableModel );
                 break;
             case MODEL_DESC_HANDLER:
                 break;
@@ -329,8 +410,141 @@ public class MainGui extends JFrame {
                 break;
             case LAYERS_GROUP:
                 break;
+            case TILED_ACTOR:
+                tiledActorPropertiesTableModel.setTiledActor((TiledActor) node.getUserObject());
+                tableProperties.setModel( tiledActorPropertiesTableModel );
+                break;
+            case AAG:
+                aagPropertiesTableModel.setAag((org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup)
+                        node.getUserObject());
+                aagPropertiesTableModel.setScene( scene );
+                tableProperties.setModel( aagPropertiesTableModel );
+                break;
+        }
+    }
+
+    private static final NewNodeSelectorDialog newNodeDlg = new NewNodeSelectorDialog();
+    static {
+        newNodeDlg.setTitle("Add New Node");
+    }
+
+
+
+    void addNode() {
+        if ( scene == null )
+            return;
+
+        SceneTreeNode parentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
+        Object parentObject = parentNode.getUserObject();
+        newNodeDlg.setSize( 400, 350);
+        boolean res = false;
+
+        switch( parentNode.getType() ) {
+            case ROOT:
+                res = newNodeDlg.execute( scene  );
+                break;
+            case MODEL_DESC_HANDLER:
+                break;
+            case MODEL_ITEM:
+                break;
+            case LAYERS_GROUP:
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.LAYER );
+                break;
+            case LAYER:
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.TILED_ACTOR );
+                break;
+            case TILED_ACTOR:
+                if ( ((TiledActor) parentObject ).getAag() != null )
+                    break;
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.AAG );
+                break;
+            case AAG:
+                break;
         }
 
+        Gdx.app.log("MainGui.addNode", " Res: " + res );
+
+        if ( !res )
+            return;
+
+        SceneTreeNode newNode = newNodeDlg.getNewNode();
+
+        if ( newNode == null ) {
+            Gdx.app.error("MainGui.addNode", "null NewNode");
+            return;
+        }
+
+        Gdx.app.log("MainGui.addNode", " New node type: " + newNode.getType() );
+
+        switch ( newNode.getType() ) {
+
+            case ROOT:
+                break;
+            case MODEL_DESC_HANDLER:
+                break;
+            case MODEL_ITEM:
+                break;
+            case LAYERS_GROUP:
+                break;
+            case LAYER:
+                scene.addBackLayer((Layer) newNode.getUserObject());
+                break;
+            case TILED_ACTOR:
+                ((Layer) parentObject).addTiledActor((TiledActor) newNode.getUserObject());
+                break;
+            case AAG:
+
+                    ((TiledActor) parentObject).setAag((AnimatedActorGroup) newNode.getUserObject());
+
+
+                break;
+        }
+
+        parentNode.add( newNode );
+        treeSceneModel.nodeStructureChanged( parentNode );
+        treeSceneModel.nodeChanged( parentNode );
+        treeScene.setSelectionPath( new TreePath( newNode.getPath() ) );
+        processJTreeSelection( null );
+    }
+
+    void removeNode() {
+        if ( scene == null )
+            return;
+
+        SceneTreeNode currentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
+        SceneTreeNode parentNode = (SceneTreeNode) currentNode.getParent();
+
+        switch ( currentNode.getType() ) {
+            case ROOT:
+                break;
+            case MODEL_DESC_HANDLER:
+                break;
+            case MODEL_ITEM:
+                break;
+            case LAYERS_GROUP:
+                break;
+            case LAYER:
+                Layer remLayer = (Layer) currentNode.getUserObject();
+                scene.removeLayer( remLayer );
+                break;
+            case TILED_ACTOR:
+                TiledActor remTiledActor = (TiledActor) currentNode.getUserObject();
+                Layer parentLayer = (Layer) parentNode.getUserObject();
+                parentLayer.removeTiledActor( remTiledActor );
+                break;
+            case AAG:
+//                AnimatedActorGroup remAag = (AnimatedActorGroup) currentNode.getUserObject();
+                TiledActor parentTa = (TiledActor) parentNode.getUserObject();
+                parentTa.setAag(null);
+                break;
+        }
+
+        if ( parentNode != null ) {
+            parentNode.remove(currentNode);
+            treeSceneModel.nodeStructureChanged(parentNode);
+            treeScene.setSelectionPath(new TreePath(parentNode.getPath()));
+            processJTreeSelection(null);
+        }
     }
 
     void sceneToGui() {
@@ -347,24 +561,6 @@ public class MainGui extends JFrame {
     // ====================== static ================================
 
     private static String workDirectory = "" ;
-
-
-    private static void setGuiElementEnable(Container c, boolean state) {
-
-        Component [] cl = c.getComponents();
-
-        for ( int i = 0; i < cl.length; i++) {
-
-            if ( cl[i] instanceof Container) {
-                setGuiElementEnable((Container) cl[i], state);
-            } else {
-                cl[i].setEnabled( state );
-            }
-
-        }
-
-        c.setEnabled( state );
-    }
 
     //======================= main ================================
 

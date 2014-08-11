@@ -30,6 +30,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
     private boolean displayGrid = true;
     private boolean displayGridText = true;
+    private boolean displayGridFirst = true;
     private boolean doDebugRender = true;
 
     public BaseScreen() {
@@ -65,6 +66,14 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
     public void setDisplayGridText(boolean displayGridText) {
         this.displayGridText = displayGridText;
+    }
+
+    public boolean isDisplayGridFirst() {
+        return displayGridFirst;
+    }
+
+    public void setDisplayGridFirst(boolean displayGridFirst) {
+        this.displayGridFirst = displayGridFirst;
     }
 
     public boolean isDoDebugRender() {
@@ -291,11 +300,13 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         if ( camera.zoom < 0.25 )
             gridDelta = 1;
 
-        if ( displayGrid )
-            drawGrid( gridDelta, gridDelta, gridDelta * 5);
+        if ( displayGridFirst ) {
+            if (displayGrid)
+                drawGrid(gridDelta, gridDelta, gridDelta * 5);
 
-        if ( displayGridText)
-            drawGridText( gridDelta * 10 );
+            if (displayGridText)
+                drawGridText(gridDelta * 10);
+        }
 
         stage.act( delta );
         stage.draw();
@@ -304,6 +315,16 @@ public abstract class BaseScreen implements Screen, InputProcessor {
             debugRender();
 
         draw();
+
+        if ( !displayGridFirst ) {
+            if (displayGrid)
+                drawGrid(gridDelta, gridDelta, gridDelta * 5);
+
+            if (displayGridText)
+                drawGridText(gridDelta * 10);
+        }
+
+
     }
 
     @Override

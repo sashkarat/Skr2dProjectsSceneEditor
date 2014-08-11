@@ -1,13 +1,12 @@
 package org.skr.gdx.scene;
 
 import org.skr.gdx.physmodel.animatedactorgroup.AagDescription;
-import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 
 /**
  * Created by rat on 06.08.14.
  */
 public class TiledActorDescription {
-    AagDescription aagBaseDesc;
+    AagDescription aagDescription;
     float aagPosX;
     float aagPosY;
     float spaceX;
@@ -17,12 +16,12 @@ public class TiledActorDescription {
     TiledActor.Type type;
     String name;
 
-    public AagDescription getAagBaseDesc() {
-        return aagBaseDesc;
+    public AagDescription getAagDescription() {
+        return aagDescription;
     }
 
-    public void setAagBaseDesc(AagDescription aagBaseDesc) {
-        this.aagBaseDesc = aagBaseDesc;
+    public void setAagDescription(AagDescription aagDescription) {
+        this.aagDescription = aagDescription;
     }
 
     public float getAagPosX() {

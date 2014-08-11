@@ -25,17 +25,17 @@ public class Utils {
 
 
 
-        xc[1] = x + c * (0 - originX) + -s * (0 - originY) + originX;
-        yc[1] = y + s * (0 - originX) + c * (0 - originY) + originY;
+        xc[0] = x + c * (0 - originX) + -s * (0 - originY) + originX;
+        yc[0] = y + s * (0 - originX) + c * (0 - originY) + originY;
 
-        xc[2]= x + c * (width - originX) + -s * (0 - originY) + originX;
-        yc[2] = y + s * (width - originX) + c * (0 - originY) + originY;
+        xc[1]= x + c * (width - originX) + -s * (0 - originY) + originX;
+        yc[1] = y + s * (width - originX) + c * (0 - originY) + originY;
 
-        xc[3]= x + c * (width - originX) + -s * (height - originY) + originX;
-        yc[3] = y + s * (width - originX) + c * (height - originY) + originY;
+        xc[2]= x + c * (width - originX) + -s * (height - originY) + originX;
+        yc[2] = y + s * (width - originX) + c * (height - originY) + originY;
 
-        xc[4] = x + c * (0 - originX) + -s * (height - originY) + originX;
-        yc[4] = y + s * (0 - originX) + c * (height - originY) + originY;
+        xc[3] = x + c * (0 - originX) + -s * (height - originY) + originX;
+        yc[3] = y + s * (0 - originX) + c * (height - originY) + originY;
 
         float xmin = 99999999;
         float xmax = -99999999;

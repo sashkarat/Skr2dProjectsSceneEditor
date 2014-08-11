@@ -6,14 +6,16 @@ import com.badlogic.gdx.utils.Array;
  * Created by rat on 07.08.14.
  */
 public class LayerDescription {
-    Array<TiledActorDescription> tiledActorDescriptions;
+    Array<TiledActorDescription> tiledActorDescriptions = new Array<TiledActorDescription>();
 
     float x;
     float y;
     float rotation;
     String name;
 
-    boolean backdrop = true;
+    Layer.ActionSettings actionSettings = new Layer.ActionSettings();
+    float zOrder;
+
 
 
 
@@ -55,5 +57,21 @@ public class LayerDescription {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Layer.ActionSettings getActionSettings() {
+        return actionSettings;
+    }
+
+    public void setActionSettings(Layer.ActionSettings actionSettings) {
+        this.actionSettings = actionSettings;
+    }
+
+    public float getzOrder() {
+        return zOrder;
+    }
+
+    public void setzOrder(float zOrder) {
+        this.zOrder = zOrder;
     }
 }

@@ -1,8 +1,10 @@
 package org.skr.gdx.scene;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.gdx.utils.RectangleExt;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.utils.Utils;
@@ -18,7 +20,7 @@ public class TiledActor extends Actor {
 
     PhysScene scene ;
 
-    AnimatedActorGroup aagBase;
+    AnimatedActorGroup aag;
     float aagPosX = 0;
     float aagPosY = 0;
     float spaceX = 0;
@@ -29,18 +31,20 @@ public class TiledActor extends Actor {
 
     RectangleExt boundingRect = new RectangleExt();
     float prevRot = -99999;
+    float prevWidth = 0;
+    float prevHeight = 0;
 
 
     public TiledActor( PhysScene scene  ) {
         this.scene = scene;
     }
 
-    public AnimatedActorGroup getAagBase() {
-        return aagBase;
+    public AnimatedActorGroup getAag() {
+        return aag;
     }
 
-    public void setAagBase(AnimatedActorGroup aagBase) {
-        this.aagBase = aagBase;
+    public void setAag(AnimatedActorGroup aag) {
+        this.aag = aag;
     }
 
     public float getAagPosX() {
@@ -101,8 +105,8 @@ public class TiledActor extends Actor {
 
     public void loadFromDescription( TiledActorDescription desc ) {
 
-        if ( desc.getAagBaseDesc() != null )
-            setAagBase( new AnimatedActorGroup( desc.getAagBaseDesc(), scene.getAtlas() ) );
+        if ( desc.getAagDescription() != null )
+            setAag(new AnimatedActorGroup(desc.getAagDescription(), scene.getAtlas()));
         setAagPosX( desc.getAagPosX() );
         setAagPosY( desc.getAagPosY() );
         setSpaceX( desc.getSpaceX() );
@@ -117,8 +121,8 @@ public class TiledActor extends Actor {
     public TiledActorDescription getDescription() {
         TiledActorDescription desc = new TiledActorDescription();
 
-        if ( aagBase != null )
-            desc.setAagBaseDesc( aagBase.getDescription() );
+        if ( aag != null )
+            desc.setAagDescription(aag.getDescription());
         desc.setAagPosX( getAagPosX() );
         desc.setAagPosY( getAagPosY() );
         desc.setSpaceX( getSpaceX() );
@@ -131,39 +135,47 @@ public class TiledActor extends Actor {
         return desc;
     }
 
+    private void updateBoundingRect() {
+        prevRot = aag.getRotation();
+        prevWidth = aag.getWidth();
+        prevHeight = aag.getHeight();
+
+        boundingRect.set( 0 , 0, aag.getWidth(), aag.getHeight() );
+        boundingRect.set(Utils.getBBox( boundingRect, aag.getWidth() /2,
+                aag.getHeight() /2, aag.getRotation() ) );
+    }
+
     @Override
     public void act(float delta) {
-        if ( aagBase == null )
+        if ( aag == null )
             return;
-        aagBase.act(delta);
-        aagBase.setPosition(0, 0);
+        aag.act(delta);
+        aag.setPosition(0, 0);
 
-        if ( Math.abs( prevRot - aagBase.getRotation() ) > 4 ) {
-            prevRot = aagBase.getRotation();
+        if ( Math.abs( prevRot - aag.getRotation() ) > 4 ||
+                prevWidth != aag.getWidth() ||
+                prevHeight != aag.getHeight() ) {
+            updateBoundingRect();
 
-            boundingRect.set( 0 , 0, aagBase.getWidth(), aagBase.getHeight() );
-            if (Math.abs( prevRot ) > 4 ) {
-                boundingRect.set(Utils.getBBox( boundingRect, aagBase.getWidth() /2,
-                        aagBase.getHeight() /2, aagBase.getRotation() ) );
-            }
         }
     }
+
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
-        if ( aagBase == null )
+        if ( aag == null )
             return;
 
-        float dX = aagBase.getWidth() + spaceX;
-        float dY = aagBase.getHeight() + spaceY;
+        float dX = boundingRect.getWidth() + spaceX;
+        float dY = boundingRect.getHeight() + spaceY;
 
         float dx2 = dX/2;
 
         for ( int v = 0; v < numberY; v++) {
-            float y = v * dY;
+            float y = v * dY + aagPosY;
             for ( int u = 0; u < numberX; u++) {
-                float x = u * dX;
+                float x = u * dX + aagPosX;
 
                 switch ( type ) {
 
@@ -180,11 +192,11 @@ public class TiledActor extends Actor {
                 boundingRect.setX( x - boundingRect.getWidth() / 2 );
                 boundingRect.setY( y - boundingRect.getHeight() / 2 );
 
-                if ( !scene.getCameraController().getViewRect().overlaps( boundingRect ) )
-                    continue;
-
-                aagBase.setPosition( x, y );
-                aagBase.draw( batch, parentAlpha );
+//                if ( scene.getCameraController().getViewRect().contains( boundingRect ) ||
+//                        scene.getCameraController().getViewRect().overlaps( boundingRect ) ) {
+//                }
+                aag.setPosition(x, y);
+                aag.draw(batch, parentAlpha);
             }
         }
 

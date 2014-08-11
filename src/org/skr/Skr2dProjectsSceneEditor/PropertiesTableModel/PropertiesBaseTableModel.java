@@ -117,9 +117,8 @@ public abstract  class PropertiesBaseTableModel extends AbstractTableModel {
     }
 
 
-
-    public abstract int getCurrentSelectorIndex( int rowIndex );
-    public abstract Array<String> getSelectorArray( int rowIndex );
+    public abstract Object getComboSelectedObject( int rowIndex );
+    public abstract Array<Object> getSelectorArray( int rowIndex );
     public abstract PropertyType getPropertyType( int rowIndex );
     public abstract DataRole getDataRole( int rowIndex );
     public abstract int getPropertiesCount();

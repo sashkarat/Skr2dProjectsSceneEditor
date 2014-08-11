@@ -38,4 +38,6 @@ public class SkrGdxAppSceneEditor extends SkrGdxApplication {
     protected void onDispose() {
         editorScreen.dispose();
     }
+
+
 }

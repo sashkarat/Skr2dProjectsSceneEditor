@@ -167,6 +167,10 @@ public class PhysScene extends Group {
         return atlas;
     }
 
+    public Array<String> getTextureRegionNames() {
+        return textureRegionNames;
+    }
+
     public boolean loadFromDescription( PhysSceneDescription sd ) {
 
         setName(sd.getName());
@@ -303,11 +307,12 @@ public class PhysScene extends Group {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-
         for ( int i = 0; i < backLayers.size; i++ ) {
             backLayers.get( i ).draw( batch, parentAlpha );
         }
-
+        batch.end();
+        batch.begin();
         super.draw(batch, parentAlpha);
+
     }
 }

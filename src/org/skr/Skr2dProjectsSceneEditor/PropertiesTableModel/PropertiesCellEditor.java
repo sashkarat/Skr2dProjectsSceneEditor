@@ -19,7 +19,7 @@ public class PropertiesCellEditor extends AbstractCellEditor implements TableCel
 
     JFormattedTextField stringTextField = new JFormattedTextField( );
     JFormattedTextField numberTextField = new JFormattedTextField( NumberFormat.getNumberInstance() );
-    JComboBox<String> combo = new JComboBox<String>();
+    JComboBox<Object> combo = new JComboBox<Object>();
     JCheckBox checkBox = new JCheckBox();
     Object editorValue = null;
 
@@ -106,13 +106,12 @@ public class PropertiesCellEditor extends AbstractCellEditor implements TableCel
                 return  checkBox;
             case SELECTOR:
                 combo.removeAllItems();
-                Array<String> items = bmodel.getSelectorArray( row );
+                Array<Object> items = bmodel.getSelectorArray( row );
                 if ( items == null )
                     return null;
-                for (String s : items )
-                    combo.addItem( s );
-
-                combo.setSelectedIndex( bmodel.getCurrentSelectorIndex( row ) );
+                for (Object o : items )
+                    combo.addItem( o );
+                combo.setSelectedItem( bmodel.getComboSelectedObject( row ) );
                 editorValue = combo.getSelectedIndex();
                 return combo;
 

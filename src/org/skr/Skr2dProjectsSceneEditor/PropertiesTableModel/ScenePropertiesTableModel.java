@@ -54,6 +54,11 @@ public class ScenePropertiesTableModel extends PropertiesBaseTableModel {
         super(modelJTree);
     }
 
+    @Override
+    public Object getComboSelectedObject(int rowIndex) {
+        return null;
+    }
+
     public PhysScene getScene() {
         return scene;
     }
@@ -63,12 +68,7 @@ public class ScenePropertiesTableModel extends PropertiesBaseTableModel {
     }
 
     @Override
-    public int getCurrentSelectorIndex(int rowIndex) {
-        return -1;
-    }
-
-    @Override
-    public Array<String> getSelectorArray(int rowIndex) {
+    public Array<Object> getSelectorArray(int rowIndex) {
         return null;
     }
 
@@ -119,7 +119,7 @@ public class ScenePropertiesTableModel extends PropertiesBaseTableModel {
             case ViewTop:
                 return scene.getViewTop();
             case ViewBottom:
-                return scene.getViewTop();
+                return scene.getViewBottom();
             case ViewCenterX:
                 return scene.getViewCenterX();
             case ViewCenterY:

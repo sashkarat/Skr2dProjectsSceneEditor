@@ -1,5 +1,6 @@
 package org.skr.Skr2dProjectsSceneEditor;
 
+import org.skr.gdx.scene.Layer;
 import org.skr.gdx.scene.PhysScene;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -13,13 +14,16 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
         MODEL_DESC_HANDLER,
         MODEL_ITEM,
         LAYERS_GROUP,
-        LAYER
+        LAYER,
+        TILED_ACTOR,
+        AAG
         }
 
     private Type type;
 
-    public SceneTreeNode(Type type ) {
+    public SceneTreeNode(Type type, Object object ) {
         this.type = type;
+        setUserObject( object );
     }
 
     public Type getType() {
@@ -38,8 +42,12 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
                 break;
             case LAYERS_GROUP:
                 PhysScene scene = (PhysScene) getUserObject();
-                return scene.getName() + " : LAYERS ";
+                return " : LAYERS ";
             case LAYER:
+                break;
+            case TILED_ACTOR:
+                break;
+            case AAG:
                 break;
         }
 
