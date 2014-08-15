@@ -6,26 +6,14 @@ import com.badlogic.gdx.utils.Array;
  * Created by rat on 07.08.14.
  */
 public class LayerDescription {
-    Array<TiledActorDescription> tiledActorDescriptions = new Array<TiledActorDescription>();
 
     float x;
     float y;
     float rotation;
     String name;
 
-    Layer.ActionSettings actionSettings = new Layer.ActionSettings();
-    float zOrder;
-
-
-
-
-    public Array<TiledActorDescription> getTiledActorDescriptions() {
-        return tiledActorDescriptions;
-    }
-
-    public void setTiledActorDescriptions(Array<TiledActorDescription> tiledActorDescriptions) {
-        this.tiledActorDescriptions = tiledActorDescriptions;
-    }
+    Layer.LayerSettings layerSettings = new Layer.LayerSettings();
+    GroupChildrenDescriptions groupChildrenDescriptions = new GroupChildrenDescriptions();
 
     public float getX() {
         return x;
@@ -59,19 +47,19 @@ public class LayerDescription {
         this.name = name;
     }
 
-    public Layer.ActionSettings getActionSettings() {
-        return actionSettings;
+    public Layer.LayerSettings getLayerSettings() {
+        return layerSettings;
     }
 
-    public void setActionSettings(Layer.ActionSettings actionSettings) {
-        this.actionSettings = actionSettings;
+    public void setLayerSettings(Layer.LayerSettings layerSettings) {
+        this.layerSettings = layerSettings;
     }
 
-    public float getzOrder() {
-        return zOrder;
+    public GroupChildrenDescriptions getGroupChildrenDescriptions() {
+        return groupChildrenDescriptions;
     }
 
-    public void setzOrder(float zOrder) {
-        this.zOrder = zOrder;
+    public void setGroupChildrenDescriptions(GroupChildrenDescriptions groupChildrenDescriptions) {
+        this.groupChildrenDescriptions = groupChildrenDescriptions;
     }
 }

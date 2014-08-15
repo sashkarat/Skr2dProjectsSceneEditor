@@ -17,6 +17,7 @@ public class TiledActorPropertiesTableModel extends PropertiesBaseTableModel {
 
         Name(PropertyType.STRING),
         Type(PropertyType.SELECTOR),
+        ZIndex(PropertyType.NUMBER),
         AagPosX(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         AagPosY(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         SizeX(PropertyType.NUMBER),
@@ -129,6 +130,8 @@ public class TiledActorPropertiesTableModel extends PropertiesBaseTableModel {
                 return tiledActor.getName();
             case Type:
                 return tiledActor.getType();
+            case ZIndex:
+                return tiledActor.getZIndex();
             case AagPosX:
                 return tiledActor.getAagPosX();
             case AagPosY:
@@ -158,6 +161,9 @@ public class TiledActorPropertiesTableModel extends PropertiesBaseTableModel {
                 break;
             case Type:
                 tiledActor.setType( TiledActor.Type.values()[ (Integer) aValue ]);
+                break;
+            case ZIndex:
+                tiledActor.setZIndex((Integer) aValue );
                 break;
             case AagPosX:
                 tiledActor.setAagPosX((Float) aValue);

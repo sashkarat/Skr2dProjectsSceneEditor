@@ -13,22 +13,11 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
 
     private enum Property_ {
 
-
-        /*
-        boolean followCameraX = false;
-        boolean followCameraY = false;
-        float offsetAttenuationX = 1;
-        float offsetAttenuationY = 1;
-        boolean enableOffsetLimitX = false;
-        boolean enableOffsetLimitY = false;
-        float offsetLimitX = 0;
-        float offsetLimitY = 0;
-         */
         Name(PropertyType.STRING),
         PositionX( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
         PositionY( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
         Rotation( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
-        ZOrder( PropertyType.NUMBER ),
+        zIndex( PropertyType.NUMBER ),
         FollowCameraX(PropertyType.BOOLEAN),
         FollowCameraY(PropertyType.BOOLEAN),
         OffsetAttenuationX(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
@@ -138,28 +127,28 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
                 return layer.getY();
             case Rotation:
                 return layer.getRotation();
-            case ZOrder:
-                return layer.getzOrder();
+            case zIndex:
+                return layer.getZIndex();
             case FollowCameraX:
-                return layer.getActionSettings().isFollowCameraX();
+                return layer.getLayerSettings().isFollowCameraX();
             case FollowCameraY:
-                return layer.getActionSettings().isFollowCameraY();
+                return layer.getLayerSettings().isFollowCameraY();
             case OffsetAttenuationX:
-                return layer.getActionSettings().getOffsetAttenuationX();
+                return layer.getLayerSettings().getOffsetAttenuationX();
             case OffsetAttenuationY:
-                return layer.getActionSettings().getOffsetAttenuationY();
+                return layer.getLayerSettings().getOffsetAttenuationY();
             case EnableOffsetLimitX:
-                return layer.getActionSettings().isEnableOffsetLimitX();
+                return layer.getLayerSettings().isEnableOffsetLimitX();
             case EnableOffsetLimitY:
-                return layer.getActionSettings().isEnableOffsetLimitY();
+                return layer.getLayerSettings().isEnableOffsetLimitY();
             case OffsetLimitXMin:
-                return layer.getActionSettings().getOffsetLimitXMin();
+                return layer.getLayerSettings().getOffsetLimitXMin();
             case OffsetLimitXMax:
-                return layer.getActionSettings().getOffsetLimitXMax();
+                return layer.getLayerSettings().getOffsetLimitXMax();
             case OffsetLimitYMin:
-                return layer.getActionSettings().getOffsetLimitYMin();
+                return layer.getLayerSettings().getOffsetLimitYMin();
             case OffsetLimitYMax:
-                return layer.getActionSettings().getOffsetLimitYMax();
+                return layer.getLayerSettings().getOffsetLimitYMax();
         }
 
         return null;
@@ -186,38 +175,38 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
             case Rotation:
                 layer.setRotation((Float) aValue);
                 break;
-            case ZOrder:
-                layer.setzOrder((Float) aValue);
+            case zIndex:
+                layer.setZIndex(Math.round((Float) aValue));
                 break;
             case FollowCameraX:
-                layer.getActionSettings().setFollowCameraX((Boolean) aValue);
+                layer.getLayerSettings().setFollowCameraX((Boolean) aValue);
                 break;
             case FollowCameraY:
-                layer.getActionSettings().setFollowCameraY((Boolean) aValue);
+                layer.getLayerSettings().setFollowCameraY((Boolean) aValue);
                 break;
             case OffsetAttenuationX:
-                layer.getActionSettings().setOffsetAttenuationX((Float) aValue);
+                layer.getLayerSettings().setOffsetAttenuationX((Float) aValue);
                 break;
             case OffsetAttenuationY:
-                layer.getActionSettings().setOffsetAttenuationY((Float) aValue);
+                layer.getLayerSettings().setOffsetAttenuationY((Float) aValue);
                 break;
             case EnableOffsetLimitX:
-                layer.getActionSettings().setEnableOffsetLimitX((Boolean) aValue);
+                layer.getLayerSettings().setEnableOffsetLimitX((Boolean) aValue);
                 break;
             case EnableOffsetLimitY:
-                layer.getActionSettings().setEnableOffsetLimitY((Boolean) aValue);
+                layer.getLayerSettings().setEnableOffsetLimitY((Boolean) aValue);
                 break;
             case OffsetLimitXMin:
-                layer.getActionSettings().setOffsetLimitXMin((Float) aValue);
+                layer.getLayerSettings().setOffsetLimitXMin((Float) aValue);
                 break;
             case OffsetLimitXMax:
-                layer.getActionSettings().setOffsetLimitXMax((Float) aValue);
+                layer.getLayerSettings().setOffsetLimitXMax((Float) aValue);
                 break;
             case OffsetLimitYMin:
-                layer.getActionSettings().setOffsetLimitYMin((Float) aValue);
+                layer.getLayerSettings().setOffsetLimitYMin((Float) aValue);
                 break;
             case OffsetLimitYMax:
-                layer.getActionSettings().setOffsetLimitYMax((Float) aValue);
+                layer.getLayerSettings().setOffsetLimitYMax((Float) aValue);
                 break;
         }
     }

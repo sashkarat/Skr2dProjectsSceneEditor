@@ -1,6 +1,7 @@
 package org.skr.gdx.scene;
 
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.utils.Array;
 
@@ -8,9 +9,9 @@ import com.badlogic.gdx.utils.Array;
  * Created by rat on 06.08.14.
  */
 
-public class Layer extends Group implements Comparable {
+public class Layer extends Group {
 
-    public static class ActionSettings {
+    public static class LayerSettings {
         boolean followCameraX = false;
         boolean followCameraY = false;
         float offsetAttenuationX = 1;
@@ -105,92 +106,64 @@ public class Layer extends Group implements Comparable {
 
 
     PhysScene scene;
-    Array<TiledActor> actors = new Array<TiledActor>();
-    ActionSettings actionSettings = new ActionSettings();
-    float zOrder = 0;
-
-
+    LayerSettings layerSettings = new LayerSettings();
 
     OrthographicCamera camera;
 
     public Layer(PhysScene scene) {
         this.scene = scene;
-
     }
 
-    public ActionSettings getActionSettings() {
-        return actionSettings;
+    public LayerSettings getLayerSettings() {
+        return layerSettings;
     }
 
-    public void setActionSettings(ActionSettings actionSettings) {
-        this.actionSettings = actionSettings;
-    }
-
-    public float getzOrder() {
-        return zOrder;
-    }
-
-    public void setzOrder(float zOrder) {
-        this.zOrder = zOrder;
+    public void setLayerSettings(LayerSettings layerSettings) {
+        this.layerSettings = layerSettings;
     }
 
     public void addTiledActor( TiledActor ta ) {
-        actors.add( ta );
         addActor( ta );
     }
 
     public void removeTiledActor( TiledActor ta ) {
-        removeActor( ta );
-        actors.removeValue( ta, true );
-    }
-
-    public Array<TiledActor> getActors() {
-        return actors;
+        removeActor(ta);
     }
 
     public void loadFromDescription( LayerDescription desc ) {
-        setName( desc.getName() );
-        setPosition( desc.getX(), desc.getY() );
-        setRotation( desc.getRotation() );
-        setActionSettings( desc.getActionSettings() );
-        setzOrder( desc.getzOrder() );
-        for ( TiledActorDescription td : desc.getTiledActorDescriptions() ) {
-            TiledActor ta = new TiledActor( scene );
-            ta.loadFromDescription( td );
-            addTiledActor( ta );
+        setName(desc.getName());
+        setPosition(desc.getX(), desc.getY());
+        setRotation(desc.getRotation());
+        setLayerSettings(desc.getLayerSettings());
+
+        GroupChildrenDescriptions gcd =  desc.getGroupChildrenDescriptions();
+
+        gcd.beginLoading( scene );
+
+        while ( gcd.hasNextActor() ) {
+            Actor a = gcd.getNextActor();
+            if ( a == null )
+                break;
+            addActor( a );
         }
+
+        gcd.endLoading();
     }
 
     public LayerDescription getDescription() {
         LayerDescription desc = new LayerDescription();
 
-        desc.setName( getName() );
+        desc.setName(getName());
         desc.setX(getX());
         desc.setY(getY());
         desc.setRotation(getRotation());
-        desc.setActionSettings(getActionSettings());
-        desc.setzOrder( getzOrder() );
+        desc.setLayerSettings(getLayerSettings());
 
-        Array<TiledActorDescription> tdList = new Array<TiledActorDescription>();
-        for ( TiledActor ta : actors )
-            tdList.add( ta.getDescription());
-        desc.setTiledActorDescriptions( tdList );
+        for ( Actor a : getChildren() ) {
+            desc.getGroupChildrenDescriptions().addChild( a );
+        }
 
         return desc;
-    }
-
-    @Override
-    public int compareTo(Object o) {
-        if ( o.equals( this ))
-            return 0;
-        Layer l = (Layer) o;
-
-        if ( zOrder > l.zOrder )
-            return 1;
-        if ( zOrder < l.zOrder)
-            return -1;
-
-        return 0;
     }
 
     @Override
@@ -201,24 +174,24 @@ public class Layer extends Group implements Comparable {
             camera = (OrthographicCamera) scene.getStage().getCamera();
         }
 
-        if ( actionSettings.followCameraX ) {
-            setX( camera.position.x * actionSettings.offsetAttenuationX );
-            if ( actionSettings.enableOffsetLimitX ) {
-                if ( getX() < actionSettings.offsetLimitXMin ) {
-                    setX( actionSettings.offsetLimitXMin);
-                } else if ( getX() > actionSettings.offsetLimitXMax ) {
-                    setX( actionSettings.offsetLimitXMax );
+        if ( layerSettings.followCameraX ) {
+            setX( camera.position.x * layerSettings.offsetAttenuationX );
+            if ( layerSettings.enableOffsetLimitX ) {
+                if ( getX() < layerSettings.offsetLimitXMin ) {
+                    setX( layerSettings.offsetLimitXMin);
+                } else if ( getX() > layerSettings.offsetLimitXMax ) {
+                    setX( layerSettings.offsetLimitXMax );
                 }
             }
         }
 
-        if ( actionSettings.followCameraY ) {
-            setY( camera.position.y * actionSettings.offsetAttenuationY );
-            if ( actionSettings.enableOffsetLimitY ) {
-                if ( getY() < actionSettings.offsetLimitYMin ) {
-                    setY( actionSettings.offsetLimitYMin);
-                } else if ( getY() > actionSettings.offsetLimitYMax ) {
-                    setY( actionSettings.offsetLimitYMax );
+        if ( layerSettings.followCameraY ) {
+            setY( camera.position.y * layerSettings.offsetAttenuationY );
+            if ( layerSettings.enableOffsetLimitY ) {
+                if ( getY() < layerSettings.offsetLimitYMin ) {
+                    setY( layerSettings.offsetLimitYMin);
+                } else if ( getY() > layerSettings.offsetLimitYMax ) {
+                    setY( layerSettings.offsetLimitYMax );
                 }
             }
         }

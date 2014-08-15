@@ -2,6 +2,8 @@ package org.skr.Skr2dProjectsSceneEditor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglAWTCanvas;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.*;
 import org.skr.Skr2dProjectsSceneEditor.gdx.SkrGdxAppSceneEditor;
 import org.skr.Skr2dProjectsSceneEditor.gdx.screens.EditorScreen;
@@ -67,6 +69,8 @@ public class MainGui extends JFrame {
     private TiledActorPropertiesTableModel tiledActorPropertiesTableModel;
     private AagPropertiesTableModel aagPropertiesTableModel;
 
+    private EditorScreen editorScreen;
+
 
     MainGui() {
         gApp = new SkrGdxAppSceneEditor();
@@ -103,10 +107,10 @@ public class MainGui extends JFrame {
         Gdx.app.postRunnable( new Runnable() {
             @Override
             public void run() {
-                EditorScreen es = gApp.getEditorScreen();
-                chbDebugRender.setSelected( es.isDoDebugRender() );
-                chbDisplayGrid.setSelected( es.isDisplayGrid() );
-                chbDisplayGridFirst.setSelected( es.isDisplayGridFirst() );
+                editorScreen = gApp.getEditorScreen();
+                chbDebugRender.setSelected( editorScreen.isDoDebugRender() );
+                chbDisplayGrid.setSelected( editorScreen.isDisplayGrid() );
+                chbDisplayGridFirst.setSelected( editorScreen.isDisplayGridFirst() );
             }
         });
 
@@ -361,29 +365,50 @@ public class MainGui extends JFrame {
 
         treeSceneModel = new DefaultTreeModel( rootNode );
         SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP, scene );
-        loadLayerNodes( layersGroupNode );
+        loadLayersNodes(layersGroupNode);
         rootNode.add( layersGroupNode );
         treeScene.setModel( treeSceneModel );
         Gdx.app.log("MainGui.loadJTree", " OK");
     }
 
-    void loadLayerNodes( SceneTreeNode parentNode ) {
+    void loadLayersNodes(SceneTreeNode parentNode) {
         for (Layer l : scene.getBackLayers() ) {
             SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.LAYER, l );
-            loadTiledActorNodes( node );
+            loadLayerNodes(node);
             parentNode.add( node );
+        }
+
+    }
+
+    void loadLayerNodes(SceneTreeNode parentNode) {
+        Layer l = (Layer) parentNode.getUserObject();
+
+        for (Actor a : l.getChildren() ) {
+            if ( a instanceof TiledActor ) {
+                TiledActor ta = (TiledActor) a;
+                SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, ta );
+                if ( ta.getAag() != null ) {
+                    AnimatedActorGroup aag = ta.getAag();
+                    SceneTreeNode aagNode = new SceneTreeNode(SceneTreeNode.Type.AAG, aag);
+                    loadAagNodes(aagNode);
+                    node.add( aagNode );
+                }
+                parentNode.add( node );
+            } else if ( a instanceof AnimatedActorGroup ) {
+                AnimatedActorGroup aag = (AnimatedActorGroup) a;
+                SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.AAG, aag);
+                loadAagNodes(node);
+                parentNode.add( node );
+            }
         }
     }
 
-    void loadTiledActorNodes( SceneTreeNode parentNode) {
-        Layer l = (Layer) parentNode.getUserObject();
-        for (TiledActor ta : l.getActors() ) {
-            SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, ta );
-            if ( ta.getAag() != null ) {
-                SceneTreeNode aagNode = new SceneTreeNode(SceneTreeNode.Type.AAG,
-                        ta.getAag() );
-                node.add( aagNode );
-            }
+    public void loadAagNodes(SceneTreeNode parentNode ) {
+        AnimatedActorGroup parentAag = (AnimatedActorGroup) parentNode.getUserObject();
+        for ( int i = 0; i < parentAag.getChildrenCount(); i++ ) {
+            AnimatedActorGroup aag = parentAag.getChild( i );
+            SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.AAG, aag );
+            loadAagNodes( node );
             parentNode.add( node );
         }
     }
@@ -421,6 +446,8 @@ public class MainGui extends JFrame {
                 tableProperties.setModel( aagPropertiesTableModel );
                 break;
         }
+
+        editorScreen.setControllableObject( node.getUserObject() );
     }
 
     private static final NewNodeSelectorDialog newNodeDlg = new NewNodeSelectorDialog();
@@ -436,7 +463,7 @@ public class MainGui extends JFrame {
 
         SceneTreeNode parentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
         Object parentObject = parentNode.getUserObject();
-        newNodeDlg.setSize( 400, 350);
+        newNodeDlg.setSize( 500, 450);
         boolean res = false;
 
         switch( parentNode.getType() ) {
@@ -451,7 +478,8 @@ public class MainGui extends JFrame {
                 res = newNodeDlg.execute( scene, SceneTreeNode.Type.LAYER );
                 break;
             case LAYER:
-                res = newNodeDlg.execute( scene, SceneTreeNode.Type.TILED_ACTOR );
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.TILED_ACTOR,
+                        SceneTreeNode.Type.AAG );
                 break;
             case TILED_ACTOR:
                 if ( ((TiledActor) parentObject ).getAag() != null )
@@ -459,6 +487,7 @@ public class MainGui extends JFrame {
                 res = newNodeDlg.execute( scene, SceneTreeNode.Type.AAG );
                 break;
             case AAG:
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.AAG );
                 break;
         }
 
@@ -493,10 +522,11 @@ public class MainGui extends JFrame {
                 ((Layer) parentObject).addTiledActor((TiledActor) newNode.getUserObject());
                 break;
             case AAG:
-
+                if ( parentObject instanceof TiledActor ) {
                     ((TiledActor) parentObject).setAag((AnimatedActorGroup) newNode.getUserObject());
-
-
+                } else if ( parentObject instanceof Group) {
+                    ((Group) parentObject ).addActor((Actor) newNode.getUserObject());
+                }
                 break;
         }
 
@@ -513,16 +543,19 @@ public class MainGui extends JFrame {
 
         SceneTreeNode currentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
         SceneTreeNode parentNode = (SceneTreeNode) currentNode.getParent();
+        Object parentObject = null;
+        if ( parentNode != null )
+            parentObject = parentNode.getUserObject();
 
         switch ( currentNode.getType() ) {
             case ROOT:
-                break;
+                return;
             case MODEL_DESC_HANDLER:
                 break;
             case MODEL_ITEM:
                 break;
             case LAYERS_GROUP:
-                break;
+                return;
             case LAYER:
                 Layer remLayer = (Layer) currentNode.getUserObject();
                 scene.removeLayer( remLayer );
@@ -533,10 +566,14 @@ public class MainGui extends JFrame {
                 parentLayer.removeTiledActor( remTiledActor );
                 break;
             case AAG:
-//                AnimatedActorGroup remAag = (AnimatedActorGroup) currentNode.getUserObject();
-                TiledActor parentTa = (TiledActor) parentNode.getUserObject();
-                parentTa.setAag(null);
-                break;
+                if ( parentNode.getType() == SceneTreeNode.Type.TILED_ACTOR) {
+                    TiledActor parentTa = (TiledActor) parentNode.getUserObject();
+                    parentTa.setAag(null);
+                    break;
+                } else if ( parentObject instanceof Group ) {
+                    Group group = (Group) parentObject;
+                    group.removeActor( (AnimatedActorGroup) currentNode.getUserObject() );
+                }
         }
 
         if ( parentNode != null ) {

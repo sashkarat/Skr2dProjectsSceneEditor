@@ -115,7 +115,6 @@ public class TiledActor extends Actor {
         setNumberY( desc.getNumberY() );
         setType( desc.getType() );
         setName( desc.getName() );
-
     }
 
     public TiledActorDescription getDescription() {

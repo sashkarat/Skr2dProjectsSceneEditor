@@ -52,7 +52,6 @@ public class NewNodeSelectorDialog extends JDialog {
     private JCheckBox chbLayerEnableOffsetLimitY;
     private JTextField tfLayerOffsetLimitXMin;
     private JTextField tfLayerOffsetLimitYMin;
-    private JTextField tfLayerZOrder;
     private JTextField tfLayerOffsetLimitXMax;
     private JTextField tfLayerOffsetLimitYMax;
 
@@ -212,17 +211,16 @@ public class NewNodeSelectorDialog extends JDialog {
             layer.setX(Float.parseFloat(tfLayerPosX.getText()));
             layer.setY(Float.parseFloat(tfLayerPosY.getText()));
             layer.setRotation(Float.parseFloat(tfLayerRotation.getText()));
-            layer.setzOrder(Float.parseFloat(tfLayerZOrder.getText()));
-            layer.getActionSettings().setFollowCameraX( chbLayerFollowCameraX.isSelected() );
-            layer.getActionSettings().setFollowCameraY( chbLayerFollowCameraY.isSelected() );
-            layer.getActionSettings().setOffsetAttenuationX(Float.parseFloat(tfLayerOffsetAttenuationX.getText()));
-            layer.getActionSettings().setOffsetAttenuationY(Float.parseFloat(tfLayerOffsetAttenuationY.getText()));
-            layer.getActionSettings().setEnableOffsetLimitX(chbLayerEnableOffsetLimitX.isSelected());
-            layer.getActionSettings().setEnableOffsetLimitY(chbLayerEnableOffsetLimitY.isSelected());
-            layer.getActionSettings().setOffsetLimitXMin(Float.parseFloat(tfLayerOffsetLimitXMin.getText()));
-            layer.getActionSettings().setOffsetLimitXMax(Float.parseFloat(tfLayerOffsetLimitXMax.getText()));
-            layer.getActionSettings().setOffsetLimitYMin(Float.parseFloat(tfLayerOffsetLimitYMin.getText()));
-            layer.getActionSettings().setOffsetLimitYMax(Float.parseFloat(tfLayerOffsetLimitYMax.getText()));
+            layer.getLayerSettings().setFollowCameraX( chbLayerFollowCameraX.isSelected() );
+            layer.getLayerSettings().setFollowCameraY( chbLayerFollowCameraY.isSelected() );
+            layer.getLayerSettings().setOffsetAttenuationX(Float.parseFloat(tfLayerOffsetAttenuationX.getText()));
+            layer.getLayerSettings().setOffsetAttenuationY(Float.parseFloat(tfLayerOffsetAttenuationY.getText()));
+            layer.getLayerSettings().setEnableOffsetLimitX(chbLayerEnableOffsetLimitX.isSelected());
+            layer.getLayerSettings().setEnableOffsetLimitY(chbLayerEnableOffsetLimitY.isSelected());
+            layer.getLayerSettings().setOffsetLimitXMin(Float.parseFloat(tfLayerOffsetLimitXMin.getText()));
+            layer.getLayerSettings().setOffsetLimitXMax(Float.parseFloat(tfLayerOffsetLimitXMax.getText()));
+            layer.getLayerSettings().setOffsetLimitYMin(Float.parseFloat(tfLayerOffsetLimitYMin.getText()));
+            layer.getLayerSettings().setOffsetLimitYMax(Float.parseFloat(tfLayerOffsetLimitYMax.getText()));
         } catch (NumberFormatException e ) {
         }
 

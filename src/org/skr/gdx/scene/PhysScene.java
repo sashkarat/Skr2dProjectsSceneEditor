@@ -6,11 +6,13 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.SerializationException;
+import com.badlogic.gdx.utils.SnapshotArray;
 import org.skr.gdx.PhysWorld;
 
 /**
@@ -35,7 +37,7 @@ public class PhysScene extends Group {
     float viewTop = 500;
     float viewBottom = -500;
 
-    Array< Layer> backLayers = new Array<Layer>();
+    Group layersGroup  = new Group();
 
     public PhysScene( World world ) {
         super();
@@ -112,16 +114,20 @@ public class PhysScene extends Group {
     }
 
     public Array<Layer> getBackLayers() {
-        return backLayers;
+        Array<Layer> lrs = new Array<Layer>();
+        for (Actor la :  layersGroup.getChildren() ) {
+            if ( la instanceof Layer )
+                lrs.add((Layer) la);
+        }
+        return  lrs;
     }
 
     public void addBackLayer( Layer layer ) {
-        backLayers.add( layer );
-        backLayers.sort();
+        layersGroup.addActor( layer );
     }
 
     public void removeLayer( Layer layer ) {
-        backLayers.removeValue( layer, true );
+        layersGroup.removeActor( layer );
     }
 
     public boolean loadTextureAtlas() {
@@ -194,13 +200,15 @@ public class PhysScene extends Group {
 
         for ( LayerDescription ld : sd.getLayerDescriptions() ) {
             Layer lr = new Layer( this );
-            lr.loadFromDescription( ld );
-            backLayers.add( lr );
+            lr.loadFromDescription(ld);
+            layersGroup.addActor( lr );
         }
 
-        //TODO: implement method
+        //TODO: load children in the Z order
 
-        backLayers.sort();
+
+
+        //TODO: implement method
 
         return true;
     }
@@ -224,13 +232,15 @@ public class PhysScene extends Group {
         sd.setViewCenterX( getViewCenterX() );
         sd.setViewCenterY( getViewCenterY() );
 
-        Array<LayerDescription>  ldList = new Array<LayerDescription>();
+        sd.getLayerDescriptions().clear();
 
-        for ( Layer lr : backLayers ) {
-            ldList.add( lr.getDescription() );
+        for ( Actor la: layersGroup.getChildren() ) {
+            if ( la instanceof Layer ) {
+                Layer lr = (Layer) la;
+                sd.getLayerDescriptions().add(lr.getDescription());
+            }
         }
 
-        sd.setLayerDescriptions( ldList );
 
         //TODO: implement method
         return sd;
@@ -274,8 +284,6 @@ public class PhysScene extends Group {
             }
         }
 
-
-
         return scene;
     }
 
@@ -300,19 +308,12 @@ public class PhysScene extends Group {
     public void act(float delta) {
         super.act(delta);
         cameraController.act( delta );
-        for ( int i = 0; i < backLayers.size; i++ ) {
-            backLayers.get( i ).act( delta );
-        }
+        layersGroup.act( delta );
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        for ( int i = 0; i < backLayers.size; i++ ) {
-            backLayers.get( i ).draw( batch, parentAlpha );
-        }
-        batch.end();
-        batch.begin();
+        layersGroup.draw( batch, parentAlpha );
         super.draw(batch, parentAlpha);
-
     }
 }

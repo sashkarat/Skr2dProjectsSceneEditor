@@ -97,4 +97,5 @@ public class PhysSceneDescription {
     public void setLayerDescriptions(Array<LayerDescription> layerDescriptions) {
         this.layerDescriptions = layerDescriptions;
     }
+
 }

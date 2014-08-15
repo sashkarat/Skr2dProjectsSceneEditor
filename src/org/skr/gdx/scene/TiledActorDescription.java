@@ -15,6 +15,7 @@ public class TiledActorDescription {
     int numberY;
     TiledActor.Type type;
     String name;
+    int zIndex = 0;
 
     public AagDescription getAagDescription() {
         return aagDescription;
@@ -86,5 +87,13 @@ public class TiledActorDescription {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public int getzIndex() {
+        return zIndex;
+    }
+
+    public void setzIndex(int zIndex) {
+        this.zIndex = zIndex;
     }
 }

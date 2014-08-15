@@ -46,6 +46,8 @@ public class AnimatedActorGroup extends Group {
     private float stateTime = 0;
     private int count;
 
+    private RenderableUserObject renderableUserObject;
+
     public AnimatedActorGroup( TextureAtlas atlas ) {
         updateTextures( atlas );
     }
@@ -96,6 +98,14 @@ public class AnimatedActorGroup extends Group {
 
     public void setDrawable(boolean drawable) {
         this.drawable = drawable;
+    }
+
+    public RenderableUserObject getRenderableUserObject() {
+        return renderableUserObject;
+    }
+
+    public void setRenderableUserObject(RenderableUserObject renderableUserObject) {
+        this.renderableUserObject = renderableUserObject;
     }
 
     // ================================================================
@@ -312,11 +322,8 @@ public class AnimatedActorGroup extends Group {
             batch.draw(currentRegion, getX() - hW, getY() - hH, hW, hH, getWidth(), getHeight(), 1, 1, getRotation());
         }
 
-        Object obj = getUserObject();
-        if (obj != null) {
-            if (obj instanceof RenderableUserObject) {
-                ((RenderableUserObject) obj).render(this, batch);
-            }
+        if (renderableUserObject != null) {
+                renderableUserObject.render(this, batch);
         }
 
         super.draw( batch, parentAlpha );

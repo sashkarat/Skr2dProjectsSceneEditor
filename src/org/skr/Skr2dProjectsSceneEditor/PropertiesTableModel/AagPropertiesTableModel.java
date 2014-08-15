@@ -26,6 +26,7 @@ public class AagPropertiesTableModel extends PropertiesBaseTableModel {
         PosX(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         PosY(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         Rotation(PropertyType.NUMBER),
+        ZIndex( PropertyType.NUMBER ),
         Drawable(PropertyType.BOOLEAN);
 
 
@@ -170,6 +171,8 @@ public class AagPropertiesTableModel extends PropertiesBaseTableModel {
                 return aag.getY();
             case Rotation:
                 return aag.getRotation();
+            case ZIndex:
+                return aag.getZIndex();
             case Drawable:
                 return aag.isDrawable();
         }
@@ -216,6 +219,9 @@ public class AagPropertiesTableModel extends PropertiesBaseTableModel {
                 break;
             case Rotation:
                 aag.setRotation((Float) aValue );
+                break;
+            case ZIndex:
+                aag.setZIndex( Math.round((Float) aValue) );
                 break;
             case Drawable:
                 aag.setDrawable((Boolean) aValue);
