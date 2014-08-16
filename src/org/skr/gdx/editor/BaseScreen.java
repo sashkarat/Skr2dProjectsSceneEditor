@@ -11,7 +11,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.utils.ModShapeRenderer;
 
 /**
  * Created by rat on 13.07.14.
@@ -23,15 +25,14 @@ public abstract class BaseScreen implements Screen, InputProcessor {
     private OrthographicCamera camera;
 
 
-    private ShapeRenderer shapeRenderer;
-    private BitmapFont font;
-    private Batch fontBatch;
+    protected ModShapeRenderer shapeRenderer;
+    protected BitmapFont font;
+    protected Batch fontBatch;
 
 
     private boolean displayGrid = true;
     private boolean displayGridText = true;
     private boolean displayGridFirst = true;
-    private boolean doDebugRender = true;
 
     public BaseScreen() {
         ScreenViewport vp = new ScreenViewport();
@@ -39,7 +40,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         camera = (OrthographicCamera) stage.getCamera();
         camera.position.set(0, 0, 0);
 
-        shapeRenderer = new ShapeRenderer();
+        shapeRenderer = new ModShapeRenderer();
         font = new BitmapFont();
         fontBatch = new SpriteBatch();
     }
@@ -74,14 +75,6 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
     public void setDisplayGridFirst(boolean displayGridFirst) {
         this.displayGridFirst = displayGridFirst;
-    }
-
-    public boolean isDoDebugRender() {
-        return doDebugRender;
-    }
-
-    public void setDoDebugRender(boolean doDebugRender) {
-        this.doDebugRender = doDebugRender;
     }
 
     @Override
@@ -152,9 +145,9 @@ public abstract class BaseScreen implements Screen, InputProcessor {
     @Override
     public boolean scrolled(int amount) {
         if ( amount > 0)
-            camera.zoom *= 2;
+            camera.zoom *= 1.2;
         else if (amount < 0)
-            camera.zoom /= 2;
+            camera.zoom /= 1.2;
 
         if ( camera.zoom > 100 )
             camera.zoom = 100;
@@ -250,6 +243,10 @@ public abstract class BaseScreen implements Screen, InputProcessor {
 
         fontBatch.begin();
 
+        font.setColor( 1, 1, 1, 1);
+        font.drawMultiLine( fontBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(),
+                 - camera.viewportWidth/2 + 20, camera.viewportHeight/2 - 20);
+
         while ( x < x2 ) {
             font.setColor( 0, 1, 0.2f, 1);
             font.drawMultiLine( fontBatch, " " + x,
@@ -269,6 +266,8 @@ public abstract class BaseScreen implements Screen, InputProcessor {
                     (x2 + offsetX) / z - 35, (y + offsetY) / z );
             y+= delta;
         }
+
+
 
         fontBatch.end();
 
@@ -311,7 +310,7 @@ public abstract class BaseScreen implements Screen, InputProcessor {
         stage.act( delta );
         stage.draw();
 
-        if ( doDebugRender)
+        if ( Environment.debugRender )
             debugRender();
 
         draw();

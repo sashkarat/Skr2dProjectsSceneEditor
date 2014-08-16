@@ -12,6 +12,7 @@ public class CameraController {
     PhysScene scene;
 
     boolean holdCameraInsideBorders = true;
+
     RectangleExt viewRect = new RectangleExt();
 
     public CameraController( PhysScene scene ) {
@@ -28,6 +29,7 @@ public class CameraController {
     }
 
     protected void controlSceneBorders() {
+
         float w = camera.viewportWidth * camera.zoom;
         float h = camera.viewportHeight * camera.zoom;
 
@@ -70,7 +72,8 @@ public class CameraController {
     }
 
     public void act( float delta ) {
-        controlSceneBorders();
+        if ( holdCameraInsideBorders )
+            controlSceneBorders();
 
     }
 

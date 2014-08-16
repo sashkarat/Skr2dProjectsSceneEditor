@@ -88,15 +88,9 @@
                                           <text value="Add"/>
                                         </properties>
                                       </component>
-                                      <hspacer id="23428">
-                                        <constraints>
-                                          <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                                          <gridbag weightx="1.0" weighty="0.0"/>
-                                        </constraints>
-                                      </hspacer>
                                       <component id="dc522" class="javax.swing.JButton" binding="btnRemoveNode">
                                         <constraints>
-                                          <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                          <grid row="1" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                                           <gridbag weightx="0.0" weighty="0.0"/>
                                         </constraints>
                                         <properties>
@@ -121,6 +115,21 @@
                                           <gridbag weightx="0.0" weighty="0.0"/>
                                         </constraints>
                                       </vspacer>
+                                      <component id="36197" class="javax.swing.JButton" binding="btnDuplicateNode">
+                                        <constraints>
+                                          <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                          <gridbag weightx="0.0" weighty="0.0"/>
+                                        </constraints>
+                                        <properties>
+                                          <text value="Duplicate"/>
+                                        </properties>
+                                      </component>
+                                      <hspacer id="758d6">
+                                        <constraints>
+                                          <grid row="1" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                          <gridbag weightx="1.0" weighty="0.0"/>
+                                        </constraints>
+                                      </hspacer>
                                     </children>
                                   </grid>
                                   <component id="87134" class="javax.swing.JTree" binding="treeScene">
@@ -326,16 +335,41 @@
         <children>
           <hspacer id="82640">
             <constraints>
+              <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+          </hspacer>
+          <component id="388bc" class="javax.swing.JLabel" binding="lblCameraDataInfo">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="1.0" weighty="0.0"/>
+            </constraints>
+            <properties>
+              <text value="Label"/>
+            </properties>
+          </component>
+          <hspacer id="2e313">
+            <constraints>
               <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
               <gridbag weightx="0.0" weighty="0.0"/>
             </constraints>
           </hspacer>
-          <vspacer id="78f95">
+          <component id="5a434" class="javax.swing.JLabel">
             <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
               <gridbag weightx="0.0" weighty="0.0"/>
             </constraints>
-          </vspacer>
+            <properties>
+              <text value="Debug View Rectangle Size:"/>
+            </properties>
+          </component>
+          <component id="78eaf" class="javax.swing.JComboBox" binding="comboDebugViewRectResolution">
+            <constraints>
+              <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties/>
+          </component>
         </children>
       </grid>
     </children>

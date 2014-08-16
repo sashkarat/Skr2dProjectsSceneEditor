@@ -5,6 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -12,8 +13,9 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.SerializationException;
-import com.badlogic.gdx.utils.SnapshotArray;
+import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.utils.ModShapeRenderer;
 
 /**
  * Created by rat on 02.08.14.
@@ -22,8 +24,11 @@ import org.skr.gdx.PhysWorld;
 
 public class PhysScene extends Group {
 
+
+
     World world;
     CameraController cameraController;
+    OrthographicCamera camera;
 
     TextureAtlas atlas;
     String internalTextureAtlasPath;
@@ -37,16 +42,23 @@ public class PhysScene extends Group {
     float viewTop = 500;
     float viewBottom = -500;
 
-    Group layersGroup  = new Group();
+    Group backLayersGroup = new Group();
+    Group frontLayersGroup = new Group();
+
+    ModShapeRenderer shapeRenderer = null;
 
     public PhysScene( World world ) {
         super();
         this.world = world;
+        backLayersGroup.setName("BACK LAYERS");
+        frontLayersGroup.setName("FRONT LAYERS");
     }
 
     public void initializeScene( Stage stage ) {
         setStage( stage );
         cameraController = new CameraController( this );
+        shapeRenderer = new ModShapeRenderer();
+        camera = (OrthographicCamera) stage.getCamera();
     }
 
     public String getInternalTextureAtlasPath() {
@@ -115,19 +127,46 @@ public class PhysScene extends Group {
 
     public Array<Layer> getBackLayers() {
         Array<Layer> lrs = new Array<Layer>();
-        for (Actor la :  layersGroup.getChildren() ) {
+        for (Actor la :  backLayersGroup.getChildren() ) {
             if ( la instanceof Layer )
                 lrs.add((Layer) la);
         }
         return  lrs;
     }
 
-    public void addBackLayer( Layer layer ) {
-        layersGroup.addActor( layer );
+    public Array<Layer> getFrontLayers() {
+        Array<Layer> lrs = new Array<Layer>();
+        for ( Actor a : frontLayersGroup.getChildren() ) {
+            if ( a instanceof  Layer ) {
+                lrs.add((Layer) a);
+            }
+        }
+
+        return lrs;
     }
 
-    public void removeLayer( Layer layer ) {
-        layersGroup.removeActor( layer );
+    public void addFrontLayer( Layer layer ) {
+        frontLayersGroup.addActor( layer );
+    }
+
+    public void removeFrontLayer( Layer layer ) {
+        frontLayersGroup.removeActor( layer );
+    }
+
+    public Group getBackLayersGroup() {
+        return backLayersGroup;
+    }
+
+    public Group getFrontLayersGroup() {
+        return frontLayersGroup;
+    }
+
+    public void addBackLayer( Layer layer ) {
+        backLayersGroup.addActor(layer);
+    }
+
+    public void removeBackLayer(Layer layer) {
+        backLayersGroup.removeActor(layer);
     }
 
     public boolean loadTextureAtlas() {
@@ -198,10 +237,16 @@ public class PhysScene extends Group {
             modelHandlers.add( hndlr );
         }
 
-        for ( LayerDescription ld : sd.getLayerDescriptions() ) {
+        for ( LayerDescription ld : sd.getBackLayerDescriptions() ) {
             Layer lr = new Layer( this );
             lr.loadFromDescription(ld);
-            layersGroup.addActor( lr );
+            backLayersGroup.addActor(lr);
+        }
+
+        for ( LayerDescription ld : sd.getFrontLayerDescriptions() ) {
+            Layer lr = new Layer( this );
+            lr.loadFromDescription( ld );
+            frontLayersGroup.addActor( lr );
         }
 
         //TODO: load children in the Z order
@@ -232,12 +277,19 @@ public class PhysScene extends Group {
         sd.setViewCenterX( getViewCenterX() );
         sd.setViewCenterY( getViewCenterY() );
 
-        sd.getLayerDescriptions().clear();
+        sd.getBackLayerDescriptions().clear();
 
-        for ( Actor la: layersGroup.getChildren() ) {
+        for ( Actor la: backLayersGroup.getChildren() ) {
             if ( la instanceof Layer ) {
                 Layer lr = (Layer) la;
-                sd.getLayerDescriptions().add(lr.getDescription());
+                sd.getBackLayerDescriptions().add(lr.getDescription());
+            }
+        }
+
+        for ( Actor la : frontLayersGroup.getChildren() ) {
+            if ( la instanceof  Layer ) {
+                Layer lr = (Layer) la;
+                sd.getFrontLayerDescriptions().add( lr.getDescription() );
             }
         }
 
@@ -308,12 +360,35 @@ public class PhysScene extends Group {
     public void act(float delta) {
         super.act(delta);
         cameraController.act( delta );
-        layersGroup.act( delta );
+        backLayersGroup.act(delta);
+        frontLayersGroup.act(delta);
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        layersGroup.draw( batch, parentAlpha );
+
+        backLayersGroup.draw(batch, parentAlpha);
         super.draw(batch, parentAlpha);
+        frontLayersGroup.draw( batch, parentAlpha );
+
+        if ( !Environment.debugRender )
+            return;
+
+        shapeRenderer.setProjectionMatrix( batch.getProjectionMatrix() );
+        shapeRenderer.setTransformMatrix( batch.getTransformMatrix() );
+
+        shapeRenderer.setColor(1, 1, 1, 1);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.rect(viewLeft + 10, viewBottom + 10,
+                viewRight - viewLeft - 20, viewTop - viewBottom - 20);
+
+        shapeRenderer.end();
+
+
+
+
     }
+
+
 }

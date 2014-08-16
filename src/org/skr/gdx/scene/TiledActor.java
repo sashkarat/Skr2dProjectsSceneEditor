@@ -1,5 +1,6 @@
 package org.skr.gdx.scene;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
@@ -31,8 +32,8 @@ public class TiledActor extends Actor {
 
     RectangleExt boundingRect = new RectangleExt();
     float prevRot = -99999;
-    float prevWidth = 0;
-    float prevHeight = 0;
+    float prevWidth = -99999999;
+    float prevHeight = -9999999;
 
 
     public TiledActor( PhysScene scene  ) {
@@ -135,7 +136,9 @@ public class TiledActor extends Actor {
     }
 
     private void updateBoundingRect() {
+
         prevRot = aag.getRotation();
+
         prevWidth = aag.getWidth();
         prevHeight = aag.getHeight();
 
@@ -146,6 +149,8 @@ public class TiledActor extends Actor {
 
     @Override
     public void act(float delta) {
+
+
         if ( aag == null )
             return;
         aag.act(delta);

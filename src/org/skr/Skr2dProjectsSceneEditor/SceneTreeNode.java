@@ -41,8 +41,7 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
             case MODEL_ITEM:
                 break;
             case LAYERS_GROUP:
-                PhysScene scene = (PhysScene) getUserObject();
-                return " : LAYERS ";
+                break;
             case LAYER:
                 break;
             case TILED_ACTOR:

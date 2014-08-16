@@ -52,7 +52,7 @@ public class LayerDescription {
     }
 
     public void setLayerSettings(Layer.LayerSettings layerSettings) {
-        this.layerSettings = layerSettings;
+        this.layerSettings.set( layerSettings );
     }
 
     public GroupChildrenDescriptions getGroupChildrenDescriptions() {

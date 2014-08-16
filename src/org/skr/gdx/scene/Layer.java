@@ -23,6 +23,19 @@ public class Layer extends Group {
         float offsetLimitYMin = 0;
         float offsetLimitYMax = 0;
 
+        public void set( LayerSettings l ) {
+            this.followCameraX = l.followCameraX;
+            this.followCameraY = l.followCameraY;
+            this.offsetAttenuationX = l.offsetAttenuationX;
+            this.offsetAttenuationY = l.offsetAttenuationY;
+            this.enableOffsetLimitX = l.enableOffsetLimitX;
+            this.enableOffsetLimitY = l.enableOffsetLimitY;
+            this.offsetLimitXMin = l.offsetLimitXMin;
+            this.offsetLimitXMax = l.offsetLimitXMax;
+            this.offsetLimitYMin = l.offsetLimitYMin;
+            this.offsetLimitYMax = l.offsetLimitYMax;
+        }
+
         public boolean isFollowCameraX() {
             return followCameraX;
         }

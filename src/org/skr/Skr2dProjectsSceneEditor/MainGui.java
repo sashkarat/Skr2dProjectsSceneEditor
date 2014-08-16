@@ -2,16 +2,17 @@ package org.skr.Skr2dProjectsSceneEditor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl.LwjglAWTCanvas;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.*;
 import org.skr.Skr2dProjectsSceneEditor.gdx.SkrGdxAppSceneEditor;
 import org.skr.Skr2dProjectsSceneEditor.gdx.screens.EditorScreen;
+import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.physmodel.animatedactorgroup.AagDescription;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
-import org.skr.gdx.scene.Layer;
-import org.skr.gdx.scene.PhysScene;
-import org.skr.gdx.scene.TiledActor;
+import org.skr.gdx.scene.*;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
@@ -55,13 +56,18 @@ public class MainGui extends JFrame {
     private JCheckBox chbDisplayGrid;
     private JCheckBox chbDisplayGridFirst;
     private JCheckBox chbDebugRender;
+    private JButton btnDuplicateNode;
+    private JLabel lblCameraDataInfo;
+    private JComboBox comboDebugViewRectResolution;
 
 
-    SkrGdxAppSceneEditor gApp;
-    PhysScene scene;
-    String sceneAbsolutePath = "";
-    DefaultTreeModel treeSceneModel;
-    DefaultTableModel defaultTableModel = new DefaultTableModel();
+    private Timer cameraDataRefreshTimer;
+
+    private SkrGdxAppSceneEditor gApp;
+    private PhysScene scene;
+    private String sceneAbsolutePath = "";
+    private DefaultTreeModel treeSceneModel;
+    private DefaultTableModel defaultTableModel = new DefaultTableModel();
 
     private PropertiesCellEditor propertiesCellEditor;
     private ScenePropertiesTableModel scenePropertiesTableModel;
@@ -72,7 +78,18 @@ public class MainGui extends JFrame {
     private EditorScreen editorScreen;
 
 
+
     MainGui() {
+
+        cameraDataRefreshTimer = new Timer(1000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateCameraDataInfo();
+            }
+        });
+
+
+
         gApp = new SkrGdxAppSceneEditor();
         final LwjglAWTCanvas gdxCanvas = new LwjglAWTCanvas( gApp );
 
@@ -88,7 +105,12 @@ public class MainGui extends JFrame {
 
         MainGuiWindowListener guiWindowListener = new MainGuiWindowListener();
         addWindowListener(guiWindowListener);
+        guiWindowListener.addTimer( cameraDataRefreshTimer );
         PhysScene.setSceneStateListener( sceneStateListener );
+
+        for ( EditorScreen.DebugResolution dr : EditorScreen.DebugResolution.values() ) {
+            comboDebugViewRectResolution.addItem( dr );
+        }
 
         scenePropertiesTableModel = new ScenePropertiesTableModel( treeScene );
         layerPropertiesTableModel = new LayerPropertiesTableModel( treeScene );
@@ -108,9 +130,10 @@ public class MainGui extends JFrame {
             @Override
             public void run() {
                 editorScreen = gApp.getEditorScreen();
-                chbDebugRender.setSelected( editorScreen.isDoDebugRender() );
+                chbDebugRender.setSelected( Environment.debugRender );
                 chbDisplayGrid.setSelected( editorScreen.isDisplayGrid() );
                 chbDisplayGridFirst.setSelected( editorScreen.isDisplayGridFirst() );
+                cameraDataRefreshTimer.start();
             }
         });
 
@@ -178,7 +201,19 @@ public class MainGui extends JFrame {
         chbDebugRender.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                gApp.getEditorScreen().setDoDebugRender( chbDebugRender.isSelected() );
+                Environment.debugRender = chbDebugRender.isSelected();
+            }
+        });
+        btnDuplicateNode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                duplicateNode();
+            }
+        });
+        comboDebugViewRectResolution.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeDebugViewRect();
             }
         });
     }
@@ -244,6 +279,10 @@ public class MainGui extends JFrame {
             }
         });
     }
+
+
+
+
 
     void loadScene() {
         clear();
@@ -364,15 +403,28 @@ public class MainGui extends JFrame {
         SceneTreeNode rootNode = new SceneTreeNode(SceneTreeNode.Type.ROOT, scene );
 
         treeSceneModel = new DefaultTreeModel( rootNode );
-        SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP, scene );
-        loadLayersNodes(layersGroupNode);
+        SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP,
+                scene.getFrontLayersGroup() );
+        loadLayersGroupNodes(layersGroupNode);
         rootNode.add( layersGroupNode );
+
+        layersGroupNode = new SceneTreeNode(SceneTreeNode.Type.LAYERS_GROUP,
+                scene.getBackLayersGroup() );
+        loadLayersGroupNodes( layersGroupNode );
+        rootNode.add( layersGroupNode );
+
+
+
         treeScene.setModel( treeSceneModel );
         Gdx.app.log("MainGui.loadJTree", " OK");
     }
 
-    void loadLayersNodes(SceneTreeNode parentNode) {
-        for (Layer l : scene.getBackLayers() ) {
+    void loadLayersGroupNodes(SceneTreeNode parentNode) {
+        Group layersGroup = (Group) parentNode.getUserObject();
+        for (Actor a : layersGroup.getChildren() ) {
+            if ( !( a instanceof Layer) )
+                continue;
+            Layer l = (Layer) a;
             SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.LAYER, l );
             loadLayerNodes(node);
             parentNode.add( node );
@@ -387,12 +439,7 @@ public class MainGui extends JFrame {
             if ( a instanceof TiledActor ) {
                 TiledActor ta = (TiledActor) a;
                 SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, ta );
-                if ( ta.getAag() != null ) {
-                    AnimatedActorGroup aag = ta.getAag();
-                    SceneTreeNode aagNode = new SceneTreeNode(SceneTreeNode.Type.AAG, aag);
-                    loadAagNodes(aagNode);
-                    node.add( aagNode );
-                }
+                loadTiledActorNodes( node );
                 parentNode.add( node );
             } else if ( a instanceof AnimatedActorGroup ) {
                 AnimatedActorGroup aag = (AnimatedActorGroup) a;
@@ -401,6 +448,17 @@ public class MainGui extends JFrame {
                 parentNode.add( node );
             }
         }
+    }
+
+    public void loadTiledActorNodes( SceneTreeNode parentNode ) {
+        TiledActor ta = (TiledActor) parentNode.getUserObject();
+        if ( ta.getAag() != null ) {
+            AnimatedActorGroup aag = ta.getAag();
+            SceneTreeNode aagNode = new SceneTreeNode(SceneTreeNode.Type.AAG, aag);
+            loadAagNodes(aagNode);
+            parentNode.add( aagNode );
+        }
+
     }
 
     public void loadAagNodes(SceneTreeNode parentNode ) {
@@ -516,7 +574,8 @@ public class MainGui extends JFrame {
             case LAYERS_GROUP:
                 break;
             case LAYER:
-                scene.addBackLayer((Layer) newNode.getUserObject());
+                Group layersGroup = (Group) parentNode.getUserObject();
+                layersGroup.addActor((Actor) newNode.getUserObject());
                 break;
             case TILED_ACTOR:
                 ((Layer) parentObject).addTiledActor((TiledActor) newNode.getUserObject());
@@ -535,6 +594,79 @@ public class MainGui extends JFrame {
         treeSceneModel.nodeChanged( parentNode );
         treeScene.setSelectionPath( new TreePath( newNode.getPath() ) );
         processJTreeSelection( null );
+    }
+
+
+
+
+    void duplicateNode() {
+        if ( scene == null )
+            return;
+        SceneTreeNode node = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
+        SceneTreeNode parentNode = (SceneTreeNode) node.getParent();
+        SceneTreeNode nodeCpy = null;
+        Layer layer;
+
+
+        switch ( node.getType() ) {
+
+            case ROOT:
+                break;
+            case MODEL_DESC_HANDLER:
+                break;
+            case MODEL_ITEM:
+                break;
+            case LAYERS_GROUP:
+                break;
+            case LAYER:
+
+                layer = (Layer) node.getUserObject();
+                LayerDescription lDesc = layer.getDescription();
+                Layer lCpy = new Layer( scene );
+                lCpy.loadFromDescription( lDesc );
+
+                nodeCpy = new SceneTreeNode(SceneTreeNode.Type.LAYER, lCpy );
+                loadLayerNodes( nodeCpy );
+
+                Group layersGroup = (Group) parentNode.getUserObject();
+                layersGroup.addActor( lCpy );
+
+
+                break;
+            case TILED_ACTOR:
+                layer = (Layer) parentNode.getUserObject();
+                TiledActor ta = (TiledActor) node.getUserObject();
+                TiledActorDescription tad = ta.getDescription();
+                TiledActor taCpy = new TiledActor( scene );
+                taCpy.loadFromDescription( tad );
+                nodeCpy = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, taCpy);
+                loadTiledActorNodes( nodeCpy );
+                layer.addTiledActor( taCpy );
+                break;
+            case AAG:
+                if ( ! (parentNode.getUserObject() instanceof Group) )
+                    break;
+
+                AnimatedActorGroup aag = (AnimatedActorGroup) node.getUserObject();
+                AagDescription aagDesc = aag.getDescription();
+                AnimatedActorGroup aagCpy = new AnimatedActorGroup(aagDesc, scene.getAtlas() );
+                nodeCpy = new SceneTreeNode( SceneTreeNode.Type.AAG, aagCpy );
+                loadAagNodes( nodeCpy );
+                Group gp = (Group) parentNode.getUserObject();
+                gp.addActor( aagCpy );
+                break;
+        }
+
+
+        if ( nodeCpy == null )
+            return;
+
+        parentNode.add( nodeCpy );
+        treeSceneModel.nodeStructureChanged( parentNode );
+        treeSceneModel.nodeChanged( nodeCpy );
+        treeScene.setSelectionPath( new TreePath( nodeCpy.getPath() ) );
+        processJTreeSelection( null );
+
     }
 
     void removeNode() {
@@ -558,7 +690,8 @@ public class MainGui extends JFrame {
                 return;
             case LAYER:
                 Layer remLayer = (Layer) currentNode.getUserObject();
-                scene.removeLayer( remLayer );
+                Group layersGroup = (Group) parentNode.getUserObject();
+                layersGroup.removeActor( remLayer );
                 break;
             case TILED_ACTOR:
                 TiledActor remTiledActor = (TiledActor) currentNode.getUserObject();
@@ -593,6 +726,18 @@ public class MainGui extends JFrame {
         treeScene.setSelectionPath( new TreePath( root.getPath() ));
         processJTreeSelection(null);
         tableProperties.updateUI();
+    }
+
+    void updateCameraDataInfo() {
+        OrthographicCamera camera = editorScreen.getCamera();
+        lblCameraDataInfo.setText("ViewPort: "
+                + camera.viewportWidth * camera.zoom + " x " + camera.viewportHeight*camera.zoom
+        + " (zoom: " + camera.zoom + ")");
+    }
+
+
+    void changeDebugViewRect() {
+        editorScreen.setDebugViewRectResolution((EditorScreen.DebugResolution) comboDebugViewRectResolution.getSelectedItem());
     }
 
     // ====================== static ================================

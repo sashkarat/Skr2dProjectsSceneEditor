@@ -16,7 +16,8 @@ public class PhysSceneDescription {
     float viewTop = 500;
     float viewBottom = -500;
 
-    Array<LayerDescription> layerDescriptions = new Array<LayerDescription>();
+    Array<LayerDescription> backLayerDescriptions = new Array<LayerDescription>();
+    Array<LayerDescription> frontLayerDescriptions = new Array<LayerDescription>();
 
     public String getName() {
         return name;
@@ -90,12 +91,19 @@ public class PhysSceneDescription {
         this.viewCenterY = viewCenterY;
     }
 
-    public Array<LayerDescription> getLayerDescriptions() {
-        return layerDescriptions;
+    public Array<LayerDescription> getBackLayerDescriptions() {
+        return backLayerDescriptions;
     }
 
-    public void setLayerDescriptions(Array<LayerDescription> layerDescriptions) {
-        this.layerDescriptions = layerDescriptions;
+    public void setBackLayerDescriptions(Array<LayerDescription> backLayerDescriptions) {
+        this.backLayerDescriptions = backLayerDescriptions;
     }
 
+    public Array<LayerDescription> getFrontLayerDescriptions() {
+        return frontLayerDescriptions;
+    }
+
+    public void setFrontLayerDescriptions(Array<LayerDescription> frontLayerDescriptions) {
+        this.frontLayerDescriptions = frontLayerDescriptions;
+    }
 }
