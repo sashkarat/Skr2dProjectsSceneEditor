@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.AagController;
+import org.skr.gdx.PhysWorld;
 import org.skr.gdx.editor.BaseScreen;
 import org.skr.gdx.editor.controller.Controller;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
@@ -108,6 +109,10 @@ public class EditorScreen extends BaseScreen {
 
     @Override
     protected void debugRender() {
+
+        PhysWorld.get().debugRender( getStage() );
+
+
         shapeRenderer.setProjectionMatrix( getStage().getBatch().getProjectionMatrix() );
         shapeRenderer.setTransformMatrix( getStage().getBatch().getTransformMatrix() );
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);

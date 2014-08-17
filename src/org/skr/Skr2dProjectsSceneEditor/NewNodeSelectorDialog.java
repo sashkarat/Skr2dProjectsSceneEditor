@@ -4,11 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.scene.Layer;
+import org.skr.gdx.scene.PhysModelDescriptionHandler;
 import org.skr.gdx.scene.PhysScene;
 import org.skr.gdx.scene.TiledActor;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.*;
+import java.io.File;
 
 public class NewNodeSelectorDialog extends JDialog {
     private JPanel contentPane;
@@ -54,6 +57,9 @@ public class NewNodeSelectorDialog extends JDialog {
     private JTextField tfLayerOffsetLimitYMin;
     private JTextField tfLayerOffsetLimitXMax;
     private JTextField tfLayerOffsetLimitYMax;
+    private JPanel panelModelDescriptionHandler;
+    private JTextField tfModelFileInternalFilePath;
+    private JButton btnBrowseModelFile;
 
 
     private boolean accepted = false;
@@ -117,6 +123,13 @@ public class NewNodeSelectorDialog extends JDialog {
             }
         });
 
+        panelModelDescriptionHandler.addComponentListener( new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                super.componentShown(e);
+                selectedType = SceneTreeNode.Type.MODELS;
+            }
+        });
 
 
         for( TiledActor.Type t : TiledActor.Type.values() ) {
@@ -125,6 +138,12 @@ public class NewNodeSelectorDialog extends JDialog {
 
         for (Animation.PlayMode pm : Animation.PlayMode.values() )
             comboAagPlayMode.addItem( pm );
+        btnBrowseModelFile.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                browsePhysModelFile();
+            }
+        });
     }
 
     private void onOK() {
@@ -137,6 +156,36 @@ public class NewNodeSelectorDialog extends JDialog {
         dispose();
     }
 
+    private static final FileNameExtensionFilter ffModel =  new FileNameExtensionFilter("PhysModel files:", "physmodel");
+
+
+    private void browsePhysModelFile() {
+
+        final JFileChooser fch = new JFileChooser();
+        int res;
+
+        fch.setCurrentDirectory( new File( MainGui.workDirectory + "//data" ) );
+        fch.setFileFilter( ffModel );
+
+        res = fch.showOpenDialog(this);
+
+        if ( res != JFileChooser.APPROVE_OPTION )
+            return;
+
+        File fl = fch.getSelectedFile();
+
+        ApplicationSettings.get().setLastDirectory( fl.getParent() );
+
+        String fileAbsolutePath = fl.getAbsolutePath();
+
+        StringBuilder sb = new StringBuilder( fileAbsolutePath );
+        int li = MainGui.workDirectory.length() + 1; // +1  to don't forget about '/'
+        sb = sb.delete(0, li );
+
+        final StringBuilder finalSb = sb;
+
+        tfModelFileInternalFilePath.setText( finalSb.toString() );
+    }
 
     public boolean execute( PhysScene scene, SceneTreeNode.Type ... types  ) {
         tpNodes.removeAll();
@@ -145,6 +194,9 @@ public class NewNodeSelectorDialog extends JDialog {
             switch ( type ) {
 
                 case ROOT:
+                    break;
+                case MODELS:
+                    tpNodes.add("PhysModel Description Handler", panelModelDescriptionHandler );
                     break;
                 case MODEL_DESC_HANDLER:
                     break;
@@ -185,6 +237,9 @@ public class NewNodeSelectorDialog extends JDialog {
         switch ( selectedType ) {
 
             case ROOT:
+                break;
+            case MODELS:
+                createModelDescriptionHandler();
                 break;
             case MODEL_DESC_HANDLER:
                 break;
@@ -272,6 +327,23 @@ public class NewNodeSelectorDialog extends JDialog {
         aag.setDrawable(chbDrawable.isSelected());
 
         newNode =  new SceneTreeNode(SceneTreeNode.Type.AAG, aag);
+    }
+
+
+
+    private void createModelDescriptionHandler() {
+        String fileName = tfModelFileInternalFilePath.getText();
+        if ( fileName.isEmpty() )
+            return;
+
+        PhysModelDescriptionHandler dh = new PhysModelDescriptionHandler();
+        if ( !dh.loadDescription( fileName ) ) {
+            Gdx.app.error("NewNodeSelectorDialog.createModelDescriptionHandler",
+                    "Unable to Load " + fileName );
+            return;
+        }
+
+        newNode = new SceneTreeNode(SceneTreeNode.Type.MODEL_DESC_HANDLER, dh );
     }
 
     public SceneTreeNode.Type getSelectedNodeType() {

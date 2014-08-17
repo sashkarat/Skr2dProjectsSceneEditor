@@ -14,6 +14,7 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
     private enum Property_ {
 
         Name(PropertyType.STRING),
+        Visible(PropertyType.BOOLEAN),
         PositionX( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
         PositionY( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
         Rotation( PropertyType.NUMBER, DataRole.VIEW_COORDINATES ),
@@ -121,6 +122,8 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
         switch ( p ) {
             case Name:
                 return layer.getName();
+            case Visible:
+                return layer.isVisible();
             case PositionX:
                 return layer.getX();
             case PositionY:
@@ -165,6 +168,9 @@ public class LayerPropertiesTableModel extends PropertiesBaseTableModel {
 
             case Name:
                 layer.setName((String) aValue);
+                break;
+            case Visible:
+                layer.setVisible((Boolean) aValue);
                 break;
             case PositionX:
                 layer.setX((Float) aValue);

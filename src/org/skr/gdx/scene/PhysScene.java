@@ -33,7 +33,7 @@ public class PhysScene extends Group {
     TextureAtlas atlas;
     String internalTextureAtlasPath;
     Array< String > textureRegionNames = new Array<String>();
-    Array<PhysModelDescriptionHandler> modelHandlers = new Array<PhysModelDescriptionHandler>();
+    Array<PhysModelDescriptionHandler> modelDescriptionHandlers = new Array<PhysModelDescriptionHandler>();
     float viewCenterX = 0;
     float viewCenterY = 0;
 
@@ -69,8 +69,12 @@ public class PhysScene extends Group {
         this.internalTextureAtlasPath = internalTextureAtlasPath;
     }
 
-    public Array<PhysModelDescriptionHandler> getModelHandlers() {
-        return modelHandlers;
+    public Array<PhysModelDescriptionHandler> getModelDescriptionHandlers() {
+        return modelDescriptionHandlers;
+    }
+
+    public World getWorld() {
+        return world;
     }
 
     public float getViewLeft() {
@@ -216,6 +220,33 @@ public class PhysScene extends Group {
         return textureRegionNames;
     }
 
+
+    public PhysModelDescriptionHandler findModelDescriptionHandler( String uuidString ) {
+
+        for ( PhysModelDescriptionHandler mdh : modelDescriptionHandlers) {
+            if ( mdh.getModelDesc().getUuid().compareTo( uuidString) == 0 ) {
+                return mdh;
+            }
+        }
+
+        return null;
+    }
+
+    public PhysModelItem addModelItem( PhysModelDescriptionHandler mdh ) {
+
+        if ( !modelDescriptionHandlers.contains( mdh, true) ) {
+            modelDescriptionHandlers.add( mdh );
+        }
+
+        PhysModelItem modelItem = new PhysModelItem( this );
+        modelItem.load(mdh);
+
+        if ( modelItem.getModel() == null )
+            return null;
+        addActor( modelItem );
+        return modelItem;
+    }
+
     public boolean loadFromDescription( PhysSceneDescription sd ) {
 
         setName(sd.getName());
@@ -230,12 +261,25 @@ public class PhysScene extends Group {
 
         if ( !loadTextureAtlas( this.internalTextureAtlasPath) )
             return false;
+
         for (String internalFilePath : sd.getModelFiles() ) {
             PhysModelDescriptionHandler hndlr = new PhysModelDescriptionHandler();
             if ( !hndlr.loadDescription( internalFilePath ) )
                 continue;
-            modelHandlers.add( hndlr );
+            modelDescriptionHandlers.add(hndlr);
         }
+
+        for ( PhysModelItemDescription md : sd.getModelItemDescriptions() ) {
+            PhysModelItem modelItem = new PhysModelItem( this );
+            modelItem.loadFromDescription( md );
+            if ( modelItem.getModel() == null ) {
+                Gdx.app.error("PhysScene.loadFromDescription",
+                        "Unable to load PhysModelItem. Item is skipped");
+                continue;
+            }
+            addActor( modelItem );
+        }
+
 
         for ( LayerDescription ld : sd.getBackLayerDescriptions() ) {
             Layer lr = new Layer( this );
@@ -249,9 +293,6 @@ public class PhysScene extends Group {
             frontLayersGroup.addActor( lr );
         }
 
-        //TODO: load children in the Z order
-
-
 
         //TODO: implement method
 
@@ -263,21 +304,25 @@ public class PhysScene extends Group {
         PhysSceneDescription sd = new PhysSceneDescription();
 
         sd.setName(getName());
-        sd.setTextureAtlasPath(this.internalTextureAtlasPath);
-        sd.getModelFiles().clear();
-
-        for ( PhysModelDescriptionHandler hndlr : modelHandlers ) {
-            sd.modelFiles.add( hndlr.getInternalFilePath() );
-        }
-
         sd.setViewLeft( getViewLeft() );
         sd.setViewRight(getViewRight());
         sd.setViewTop(getViewTop());
         sd.setViewBottom( getViewBottom() );
         sd.setViewCenterX( getViewCenterX() );
         sd.setViewCenterY( getViewCenterY() );
+        sd.setTextureAtlasPath(this.internalTextureAtlasPath);
+        sd.getModelFiles().clear();
 
-        sd.getBackLayerDescriptions().clear();
+        for ( PhysModelDescriptionHandler hndlr : modelDescriptionHandlers) {
+            sd.modelFiles.add( hndlr.getInternalFilePath() );
+        }
+
+        for ( Actor a : getChildren() ) {
+            if ( !(a instanceof PhysModelItem) )
+                continue;
+            PhysModelItem modelItem = (PhysModelItem) a;
+            sd.getModelItemDescriptions().add( modelItem.getDescription() );
+        }
 
         for ( Actor la: backLayersGroup.getChildren() ) {
             if ( la instanceof Layer ) {
@@ -373,6 +418,8 @@ public class PhysScene extends Group {
 
         if ( !Environment.debugRender )
             return;
+
+
 
         shapeRenderer.setProjectionMatrix( batch.getProjectionMatrix() );
         shapeRenderer.setTransformMatrix( batch.getTransformMatrix() );

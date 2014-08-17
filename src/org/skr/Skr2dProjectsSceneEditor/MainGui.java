@@ -5,6 +5,7 @@ import com.badlogic.gdx.backends.lwjgl.LwjglAWTCanvas;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.utils.Array;
 import org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel.*;
 import org.skr.Skr2dProjectsSceneEditor.gdx.SkrGdxAppSceneEditor;
 import org.skr.Skr2dProjectsSceneEditor.gdx.screens.EditorScreen;
@@ -74,6 +75,7 @@ public class MainGui extends JFrame {
     private LayerPropertiesTableModel layerPropertiesTableModel;
     private TiledActorPropertiesTableModel tiledActorPropertiesTableModel;
     private AagPropertiesTableModel aagPropertiesTableModel;
+    private PhysModelItemPropertiesTableModel modelItemPropertiesTableModel;
 
     private EditorScreen editorScreen;
 
@@ -116,6 +118,7 @@ public class MainGui extends JFrame {
         layerPropertiesTableModel = new LayerPropertiesTableModel( treeScene );
         tiledActorPropertiesTableModel = new TiledActorPropertiesTableModel( treeScene );
         aagPropertiesTableModel=  new AagPropertiesTableModel( treeScene );
+        modelItemPropertiesTableModel = new PhysModelItemPropertiesTableModel( treeScene );
 
         JTableHeader th = tableProperties.getTableHeader();
         panelProperties.add(th, BorderLayout.NORTH);
@@ -136,6 +139,9 @@ public class MainGui extends JFrame {
                 cameraDataRefreshTimer.start();
             }
         });
+
+        setTitle("Skr2DProjectsSceneEditor");
+
 
         btnNewScene.addActionListener(new ActionListener() {
             @Override
@@ -227,7 +233,6 @@ public class MainGui extends JFrame {
     // Scene project functions
 
     private static final FileNameExtensionFilter ffScene = new FileNameExtensionFilter("PhysScene files:", "physscene");
-    private static final FileNameExtensionFilter ffModel =  new FileNameExtensionFilter("PhysModel files:", "physmodel");
     private static final FileNameExtensionFilter ffAtlas =  new FileNameExtensionFilter("Atlas file:", "atlas");
 
 
@@ -403,6 +408,12 @@ public class MainGui extends JFrame {
         SceneTreeNode rootNode = new SceneTreeNode(SceneTreeNode.Type.ROOT, scene );
 
         treeSceneModel = new DefaultTreeModel( rootNode );
+
+
+        SceneTreeNode modelsNode = new SceneTreeNode(SceneTreeNode.Type.MODELS, scene.getModelDescriptionHandlers() );
+        loadModelsGroup( modelsNode );
+        rootNode.add( modelsNode );
+
         SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP,
                 scene.getFrontLayersGroup() );
         loadLayersGroupNodes(layersGroupNode);
@@ -412,7 +423,6 @@ public class MainGui extends JFrame {
                 scene.getBackLayersGroup() );
         loadLayersGroupNodes( layersGroupNode );
         rootNode.add( layersGroupNode );
-
 
 
         treeScene.setModel( treeSceneModel );
@@ -471,6 +481,30 @@ public class MainGui extends JFrame {
         }
     }
 
+    public void loadModelsGroup( SceneTreeNode parentNode ) {
+        Array<PhysModelDescriptionHandler> modelHandlers =
+                (Array<PhysModelDescriptionHandler>) parentNode.getUserObject();
+        for ( PhysModelDescriptionHandler mdh : modelHandlers ) {
+            SceneTreeNode dhNode = new SceneTreeNode(SceneTreeNode.Type.MODEL_DESC_HANDLER, mdh );
+            loadModelDescriptionNodes( dhNode );
+            parentNode.add( dhNode );
+        }
+    }
+
+    public void loadModelDescriptionNodes( SceneTreeNode parentNode ) {
+        PhysModelDescriptionHandler mdh = (PhysModelDescriptionHandler) parentNode.getUserObject();
+        String uuidString = mdh.getModelDesc().getUuid();
+        for ( Actor a :  scene.getChildren() ) {
+            if ( !(a instanceof PhysModelItem))
+                continue;
+            PhysModelItem modelItem = (PhysModelItem) a;
+            if ( uuidString.compareTo(modelItem.getModel().getUuid().toString()) != 0 )
+                continue;
+            SceneTreeNode node = new SceneTreeNode(SceneTreeNode.Type.MODEL_ITEM, modelItem );
+            parentNode.add( node );
+        }
+    }
+
     void processJTreeSelection( TreeSelectionEvent e ) {
         propertiesCellEditor.cancelEditing();
         tableProperties.setModel( defaultTableModel );
@@ -487,9 +521,13 @@ public class MainGui extends JFrame {
                 layerPropertiesTableModel.setLayer((Layer) node.getUserObject());
                 tableProperties.setModel( layerPropertiesTableModel );
                 break;
+            case MODELS:
+                break;
             case MODEL_DESC_HANDLER:
                 break;
             case MODEL_ITEM:
+                modelItemPropertiesTableModel.setModelItem((PhysModelItem) node.getUserObject());
+                tableProperties.setModel( modelItemPropertiesTableModel );
                 break;
             case LAYERS_GROUP:
                 break;
@@ -528,8 +566,18 @@ public class MainGui extends JFrame {
             case ROOT:
                 res = newNodeDlg.execute( scene  );
                 break;
-            case MODEL_DESC_HANDLER:
+            case MODELS:
+                res = newNodeDlg.execute( scene, SceneTreeNode.Type.MODELS );
                 break;
+            case MODEL_DESC_HANDLER:
+                SceneTreeNode modItemNode = createNewModelItem(
+                        (PhysModelDescriptionHandler) parentNode.getUserObject());
+                if ( modItemNode == null )
+                    return;
+                parentNode.add( modItemNode );
+                updateTree( modItemNode, parentNode );
+                return;
+
             case MODEL_ITEM:
                 break;
             case LAYERS_GROUP:
@@ -567,7 +615,10 @@ public class MainGui extends JFrame {
 
             case ROOT:
                 break;
+            case MODELS:
+                break;
             case MODEL_DESC_HANDLER:
+                scene.getModelDescriptionHandlers().add((PhysModelDescriptionHandler) newNode.getUserObject() );
                 break;
             case MODEL_ITEM:
                 break;
@@ -590,12 +641,22 @@ public class MainGui extends JFrame {
         }
 
         parentNode.add( newNode );
+        updateTree( newNode, parentNode );
+    }
+
+    private void updateTree( SceneTreeNode newNode, SceneTreeNode parentNode ) {
         treeSceneModel.nodeStructureChanged( parentNode );
         treeSceneModel.nodeChanged( parentNode );
         treeScene.setSelectionPath( new TreePath( newNode.getPath() ) );
         processJTreeSelection( null );
     }
 
+    public SceneTreeNode createNewModelItem( PhysModelDescriptionHandler mdh ) {
+        PhysModelItem modelItem = scene.addModelItem( mdh );
+        if ( modelItem == null )
+            return  null;
+        return new SceneTreeNode(SceneTreeNode.Type.MODEL_ITEM, modelItem );
+    }
 
 
 
@@ -611,6 +672,8 @@ public class MainGui extends JFrame {
         switch ( node.getType() ) {
 
             case ROOT:
+                break;
+            case MODELS:
                 break;
             case MODEL_DESC_HANDLER:
                 break;
@@ -682,6 +745,8 @@ public class MainGui extends JFrame {
         switch ( currentNode.getType() ) {
             case ROOT:
                 return;
+            case MODELS:
+                break;
             case MODEL_DESC_HANDLER:
                 break;
             case MODEL_ITEM:
@@ -742,7 +807,7 @@ public class MainGui extends JFrame {
 
     // ====================== static ================================
 
-    private static String workDirectory = "" ;
+    public static String workDirectory = "" ;
 
     //======================= main ================================
 

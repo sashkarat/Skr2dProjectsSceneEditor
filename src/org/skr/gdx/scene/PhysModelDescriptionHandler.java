@@ -41,4 +41,12 @@ public class PhysModelDescriptionHandler {
     public PhysModel.Description getModelDesc() {
         return modelDesc;
     }
+
+    @Override
+    public String toString() {
+        if ( modelDesc == null ) {
+            return super.toString();
+        }
+        return "PhMDH: " + modelDesc.getName();
+    }
 }

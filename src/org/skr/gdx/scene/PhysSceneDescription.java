@@ -19,6 +19,8 @@ public class PhysSceneDescription {
     Array<LayerDescription> backLayerDescriptions = new Array<LayerDescription>();
     Array<LayerDescription> frontLayerDescriptions = new Array<LayerDescription>();
 
+    Array< PhysModelItemDescription> modelItemDescriptions = new Array<PhysModelItemDescription>();
+
     public String getName() {
         return name;
     }
@@ -105,5 +107,13 @@ public class PhysSceneDescription {
 
     public void setFrontLayerDescriptions(Array<LayerDescription> frontLayerDescriptions) {
         this.frontLayerDescriptions = frontLayerDescriptions;
+    }
+
+    public Array<PhysModelItemDescription> getModelItemDescriptions() {
+        return modelItemDescriptions;
+    }
+
+    public void setModelItemDescriptions(Array<PhysModelItemDescription> modelItemDescriptions) {
+        this.modelItemDescriptions = modelItemDescriptions;
     }
 }

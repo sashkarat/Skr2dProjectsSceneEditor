@@ -1,8 +1,5 @@
 package org.skr.Skr2dProjectsSceneEditor;
 
-import org.skr.gdx.scene.Layer;
-import org.skr.gdx.scene.PhysScene;
-
 import javax.swing.tree.DefaultMutableTreeNode;
 
 /**
@@ -11,6 +8,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 public class SceneTreeNode extends DefaultMutableTreeNode {
     public static enum Type {
         ROOT,
+        MODELS,
         MODEL_DESC_HANDLER,
         MODEL_ITEM,
         LAYERS_GROUP,
@@ -36,6 +34,8 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
 
             case ROOT:
                 break;
+            case MODELS:
+                return ": MODELS ";
             case MODEL_DESC_HANDLER:
                 break;
             case MODEL_ITEM:

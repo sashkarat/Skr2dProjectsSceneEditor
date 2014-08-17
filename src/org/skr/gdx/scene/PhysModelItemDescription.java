@@ -5,7 +5,8 @@ package org.skr.gdx.scene;
  */
 public class PhysModelItemDescription {
     String modelUuid;
-
+    String name = "";
+    PhysModelItem.BasePoint basePoint = new PhysModelItem.BasePoint();
 
     public String getModelUuid() {
         return modelUuid;
@@ -13,5 +14,21 @@ public class PhysModelItemDescription {
 
     public void setModelUuid(String modelUuid) {
         this.modelUuid = modelUuid;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public PhysModelItem.BasePoint getBasePoint() {
+        return basePoint;
+    }
+
+    public void setBasePoint(PhysModelItem.BasePoint basePoint) {
+        this.basePoint = basePoint;
     }
 }
