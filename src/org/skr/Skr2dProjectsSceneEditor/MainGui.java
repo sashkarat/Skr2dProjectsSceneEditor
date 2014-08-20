@@ -60,6 +60,12 @@ public class MainGui extends JFrame {
     private JButton btnDuplicateNode;
     private JLabel lblCameraDataInfo;
     private JComboBox comboDebugViewRectResolution;
+    private JCheckBox chbActivePhysics;
+    private JTextField tfVelocityIterations;
+    private JTextField tfPositionIterations;
+    private JTextField tfTargetFps;
+    private JButton btnUpdatePhParameters;
+    private JButton btnDoPhysWorldStep;
 
 
     private Timer cameraDataRefreshTimer;
@@ -220,6 +226,25 @@ public class MainGui extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 changeDebugViewRect();
+            }
+        });
+        chbActivePhysics.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setPhysicsActive();
+            }
+        });
+        btnDoPhysWorldStep.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                doPhysWorldStep();
+            }
+
+        });
+        btnUpdatePhParameters.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updatePhysWorldParameters();
             }
         });
     }
@@ -732,6 +757,7 @@ public class MainGui extends JFrame {
 
     }
 
+
     void removeNode() {
         if ( scene == null )
             return;
@@ -750,6 +776,8 @@ public class MainGui extends JFrame {
             case MODEL_DESC_HANDLER:
                 break;
             case MODEL_ITEM:
+                PhysModelItem modelItem = (PhysModelItem) currentNode.getUserObject();
+                scene.removePhysModelItem( modelItem );
                 break;
             case LAYERS_GROUP:
                 return;
@@ -803,6 +831,52 @@ public class MainGui extends JFrame {
 
     void changeDebugViewRect() {
         editorScreen.setDebugViewRectResolution((EditorScreen.DebugResolution) comboDebugViewRectResolution.getSelectedItem());
+    }
+
+
+    void setPhysicsActive() {
+        if ( scene == null )
+            return;
+
+        scene.setActivePhysics( chbActivePhysics.isSelected() );
+    }
+
+
+    void updatePhysWorldParameters() {
+
+        if ( scene == null )
+            return;
+
+        float fps = scene.getTargetFps();
+        int vi = scene.getVelocityIterations();
+        int pi = scene.getPositionIterations();
+
+        try {
+            fps = Float.parseFloat(tfTargetFps.getText());
+            vi = Integer.parseInt(tfVelocityIterations.getText());
+            pi = Integer.parseInt(tfPositionIterations.getText());
+
+            final float finalFps = fps;
+            final int finalVi = vi;
+            final int finalPi = pi;
+            Gdx.app.postRunnable( new Runnable() {
+                @Override
+                public void run() {
+                    scene.setTargetFps( finalFps );
+                    scene.setVelocityIterations( finalVi );
+                    scene.setPositionIterations( finalPi );
+                }
+            });
+
+        } catch ( NumberFormatException e ) {
+            return;
+        }
+    }
+
+    void doPhysWorldStep() {
+        if ( scene == null )
+            return;
+        scene.doPhysWorldStep();
     }
 
     // ====================== static ================================

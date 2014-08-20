@@ -47,6 +47,12 @@ public class PhysScene extends Group {
 
     ModShapeRenderer shapeRenderer = null;
 
+    boolean activePhysics = false;
+    float targetFps = 60f;
+    float timing = 1f / targetFps;
+    int velocityIterations = 8;
+    int positionIterations = 10;
+
     public PhysScene( World world ) {
         super();
         this.world = world;
@@ -59,6 +65,39 @@ public class PhysScene extends Group {
         cameraController = new CameraController( this );
         shapeRenderer = new ModShapeRenderer();
         camera = (OrthographicCamera) stage.getCamera();
+    }
+
+    public boolean isActivePhysics() {
+        return activePhysics;
+    }
+
+    public void setActivePhysics(boolean activePhysics) {
+        this.activePhysics = activePhysics;
+    }
+
+    public float getTargetFps() {
+        return targetFps;
+    }
+
+    public void setTargetFps(float targetFps) {
+        this.targetFps = targetFps;
+        this.timing = 1f / targetFps;
+    }
+
+    public int getVelocityIterations() {
+        return velocityIterations;
+    }
+
+    public void setVelocityIterations(int velocityIterations) {
+        this.velocityIterations = velocityIterations;
+    }
+
+    public int getPositionIterations() {
+        return positionIterations;
+    }
+
+    public void setPositionIterations(int positionIterations) {
+        this.positionIterations = positionIterations;
     }
 
     public String getInternalTextureAtlasPath() {
@@ -401,10 +440,27 @@ public class PhysScene extends Group {
         }
     }
 
+
+    public void removePhysModelItem ( PhysModelItem modelItem ) {
+        modelItem.clear();
+        removeActor( modelItem );
+    }
+
+
+    public void doPhysWorldStep() {
+        world.step( timing, velocityIterations, positionIterations );
+    }
+
     @Override
     public void act(float delta) {
+
+        if ( activePhysics ) {
+            doPhysWorldStep();
+        }
+
+
         super.act(delta);
-        cameraController.act( delta );
+        cameraController.act(delta);
         backLayersGroup.act(delta);
         frontLayersGroup.act(delta);
     }
