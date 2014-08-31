@@ -1,4 +1,4 @@
-package org.skr.gdx.editor.controller;
+package org.skr.gdx.editor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -478,8 +478,13 @@ public abstract  class Controller  {
         return false;
     }
 
-    protected void onMouseClicked( Vector2 localCoord, Vector2 stageCoord, int button ) {
+    protected boolean onMouseClicked( Vector2 localCoord, Vector2 stageCoord, int button ) {
         //dumb
+        return false;
+    }
+
+    protected boolean onMouseDoubleClicked( Vector2 localCoord, Vector2 stageCoord, int button ) {
+        return false;
     }
 
 
@@ -494,7 +499,7 @@ public abstract  class Controller  {
 
     private boolean controlPointMovingEnabled = false;
 
-    public void touchDown( Vector2 stageCoord ) {
+    public boolean touchDown( Vector2 stageCoord ) {
         localCoord.set(stageCoord);
         stageToObject(localCoord);
 
@@ -521,6 +526,12 @@ public abstract  class Controller  {
 
         downStagePos.set( stageCoord );
         downLocalPos.set( localCoord );
+
+        if ( selectedControlPoint != null ) {
+            return true;
+        }
+
+        return false;
     }
 
     private enum MoveDir {
@@ -531,93 +542,131 @@ public abstract  class Controller  {
 
     private MoveDir moveDir = MoveDir.Free;
 
-    public void touchDragged( Vector2 stageCoord ) {
+    private static final Vector2 tVec1 = new Vector2();
+    private static final Vector2 tVec2 = new Vector2();
+
+    public boolean touchDragged( Vector2 stageCoord ) {
 
         localCoord.set(stageCoord);
         stageToObject(localCoord);
 
-        if ( selectedControlPoint != null ) {
-            offsetLocal.set( localCoord ).sub( downLocalPos );
-            offsetStage.set( stageCoord ).sub( downStagePos );
+        if ( selectedControlPoint == null )
+            return false;
 
-            if ( Gdx.input.isKeyPressed( Input.Keys.SHIFT_LEFT ) && (moveDir == MoveDir.Free) ) {
-                if ( Math.abs(offsetStage .x) < Math.abs( offsetStage.y) ) {
-                    moveDir = MoveDir.Vertical;
-                } else  {
-                    moveDir = MoveDir.Horizontal;
-                }
-            } else if ( !Gdx.input.isKeyPressed( Input.Keys.SHIFT_LEFT ) ) {
-                moveDir = MoveDir.Free;
+        offsetLocal.set( localCoord ).sub( downLocalPos );
+        offsetStage.set( stageCoord ).sub( downStagePos );
+
+        if ( !controlPointMovingEnabled ) {
+
+            downStagePos.set( stageCoord );
+            downLocalPos.set( localCoord );
+            return true;
+        }
+
+        if ( Gdx.input.isKeyPressed( Input.Keys.SHIFT_LEFT ) && (moveDir == MoveDir.Free) ) {
+            if ( Math.abs(offsetStage .x) < Math.abs( offsetStage.y) ) {
+                moveDir = MoveDir.Vertical;
+            } else  {
+                moveDir = MoveDir.Horizontal;
             }
+        } else if ( !Gdx.input.isKeyPressed( Input.Keys.SHIFT_LEFT ) ) {
+            moveDir = MoveDir.Free;
+        }
 
-            switch ( moveDir ) {
-                case Free:
-                    break;
-                case Vertical:
-                    offsetStage.set(0, offsetStage.y);
-                    break;
-                case Horizontal:
-                    offsetStage.set(offsetStage.x, 0);
-                    break;
-            }
+        switch ( moveDir ) {
+            case Free:
+                break;
+            case Vertical:
+                offsetStage.set(0, offsetStage.y);
+                break;
+            case Horizontal:
+                offsetStage.set(offsetStage.x, 0);
+                break;
+        }
 
-            if ( Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) ) {
-                float ang = localCoord.angle() - downLocalPos.angle();
-                rotateAtControlPoint(selectedControlPoint, ang);
+        if ( moveDir != MoveDir.Free ) {
+            offsetLocal.set( offsetStage );
+            stageToObject( offsetLocal );
+        }
 
+
+        if ( Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) ) {
+
+            float ang = stageCoord.angle() - downStagePos.angle();
+            rotateAtControlPoint(selectedControlPoint, ang);
+
+        } else {
+
+            if ( selectedControlPoint == posControlPoint ) {
+                movePosControlPoint( selectedControlPoint, offsetLocal, offsetStage );
+            } else if ( selectedControlPoint == getBbDownLeftControlPoint() ) {
+                moveBbControlPoint( selectedControlPoint, getBbTopRightControlPoint(),
+                        offsetLocal, offsetStage);
+            } else if ( selectedControlPoint == getBbDownRightControlPoint() ) {
+                moveBbControlPoint( selectedControlPoint, getBbTopLeftControlPoint(),
+                        offsetLocal, offsetStage);
+            } else if ( selectedControlPoint == getBbTopLeftControlPoint() ) {
+                moveBbControlPoint( selectedControlPoint, getBbDownRightControlPoint(),
+                        offsetLocal, offsetStage);
+            } else if ( selectedControlPoint == getBbTopRightControlPoint() ) {
+                moveBbControlPoint( selectedControlPoint, getBbDownLeftControlPoint(),
+                        offsetLocal, offsetStage);
             } else {
-                if ( controlPointMovingEnabled ) {
-                    if ( selectedControlPoint == posControlPoint ) {
-                        movePosControlPoint( selectedControlPoint, offsetLocal, offsetStage );
-                    } else if ( selectedControlPoint == getBbDownLeftControlPoint() ) {
-                        moveBbControlPoint( selectedControlPoint, getBbTopRightControlPoint(),
-                                offsetLocal, offsetStage);
-                    } else if ( selectedControlPoint == getBbDownRightControlPoint() ) {
-                        moveBbControlPoint( selectedControlPoint, getBbTopLeftControlPoint(),
-                                offsetLocal, offsetStage);
-                    } else if ( selectedControlPoint == getBbTopLeftControlPoint() ) {
-                        moveBbControlPoint( selectedControlPoint, getBbDownRightControlPoint(),
-                                offsetLocal, offsetStage);
-                    } else if ( selectedControlPoint == getBbTopRightControlPoint() ) {
-                        moveBbControlPoint( selectedControlPoint, getBbDownLeftControlPoint(),
-                                offsetLocal, offsetStage);
-                    } else {
-                        moveControlPoint( selectedControlPoint, offsetLocal, offsetStage );
-                    }
-
-                    if ( controlPointListener != null ) {
-                        controlPointListener.changed( getControlledObject(), selectedControlPoint );
-                    }
-                }
+                moveControlPoint( selectedControlPoint, offsetLocal, offsetStage );
             }
+        }
+
+
+        if ( controlPointListener != null ) {
+            controlPointListener.changed( getControlledObject(), selectedControlPoint );
         }
 
         downStagePos.set( stageCoord );
         downLocalPos.set( localCoord );
+        return true;
+
     }
 
-    public void touchUp( Vector2 stageCoord, int button ) {
+    public boolean touchUp( Vector2 stageCoord, int button ) {
 
         localCoord.set(stageCoord);
         stageToObject(localCoord);
 
+        boolean res = false;
+
         switch ( selectionMode ) {
             case SELECT_BY_CLICK:
+                if ( selectedControlPoint != null )
+                    res = true;
                 break;
             case PRESSED_ONLY:
                 if ( selectedControlPoint != null ) {
                     selectedControlPoint.setSelected(false);
+                    res = true;
                 }
                 selectedControlPoint = null;
                 break;
         }
         moveDir = MoveDir.Free;
+
+        return res;
     }
 
-    public void mouseClicked( Vector2 stageCoord, int button ) {
+    public boolean mouseClicked( Vector2 stageCoord, int button ) {
         localCoord.set(stageCoord);
         stageToObject(localCoord);
-        onMouseClicked( localCoord, stageCoord, button);
+
+        if (onMouseClicked(localCoord, stageCoord, button))
+            return true;
+        return false;
+    }
+
+    public boolean mouseDoubleClicked( Vector2 stageCoord, int button ) {
+        localCoord.set( stageCoord );
+        stageToObject( localCoord );
+        if ( onMouseDoubleClicked( localCoord, stageCoord, button ) )
+            return true;
+        return false;
     }
 
     protected void setControlPointVisible( ControlPoint cp, boolean state ) {

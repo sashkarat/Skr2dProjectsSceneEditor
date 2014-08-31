@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.AagController;
 import org.skr.gdx.PhysWorld;
 import org.skr.gdx.editor.BaseScreen;
-import org.skr.gdx.editor.controller.Controller;
+import org.skr.gdx.editor.Controller;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.scene.PhysScene;
 import org.skr.gdx.utils.ModShapeRenderer;
@@ -72,7 +72,7 @@ public class EditorScreen extends BaseScreen {
     public void setControllableObject( Object object ) {
 
         if ( aagController.getAag() != null ) {
-            aagController.getAag().setRenderableUserObject( null );
+            aagController.getAag().setUserObject( null );
         }
 
         if ( object instanceof AnimatedActorGroup ) {
@@ -112,11 +112,10 @@ public class EditorScreen extends BaseScreen {
 
         PhysWorld.get().debugRender( getStage() );
 
-
-        shapeRenderer.setProjectionMatrix( getStage().getBatch().getProjectionMatrix() );
-        shapeRenderer.setTransformMatrix( getStage().getBatch().getTransformMatrix() );
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(0.2f, 0.8f, 1f, 1);
+        getShapeRenderer().setProjectionMatrix( getStage().getBatch().getProjectionMatrix() );
+        getShapeRenderer().setTransformMatrix( getStage().getBatch().getTransformMatrix() );
+        getShapeRenderer().begin(ShapeRenderer.ShapeType.Line);
+        getShapeRenderer().setColor(0.2f, 0.8f, 1f, 1);
         switch (debugViewRectResolution) {
 
             case R_NONE:
@@ -137,7 +136,7 @@ public class EditorScreen extends BaseScreen {
                 drawViewRect(2560,1600);
                 break;
         }
-        shapeRenderer.end();
+        getShapeRenderer().end();
 
 
 
@@ -147,28 +146,62 @@ public class EditorScreen extends BaseScreen {
 
     private void drawViewRect(float w, float h) {
         OrthographicCamera camera = getCamera();
-        shapeRenderer.rect( camera.position.x - w/2 - 1, camera.position.y - h/2 - 1,
+        getShapeRenderer().rect( camera.position.x - w/2 - 1, camera.position.y - h/2 - 1,
                 w+2, h+2);
     }
 
     private static final Vector2 coordV = new Vector2();
 
     @Override
-    protected void clicked(int screenX, int screenY, int button) {
+    protected boolean clicked(int screenX, int screenY, int button) {
+        boolean res = false;
         if ( currentController != null ) {
             coordV.set( screenX, screenY );
-            currentController.mouseClicked( getStage().screenToStageCoordinates(coordV), button );
-
+            res = currentController.mouseClicked( getStage().screenToStageCoordinates(coordV), button );
         }
+
+        if ( res )
+            return res;
+        if ( button == Input.Buttons.LEFT )  {
+            coordV.set( screenX, screenY );
+            //TODO: implement selection
+//            res = processSelection(getStage().screenToStageCoordinates(coordV));
+        }
+
+        if ( res )
+            return res;
+//        Gdx.app.log("EditorScreen.clicked", "Event unhandled");
+        return false;
     }
+
+
+    @Override
+    protected boolean doubleClicked(int screenX, int screenY, int button) {
+
+        if ( currentController != null ) {
+            coordV.set( screenX, screenY );
+
+            return currentController.mouseDoubleClicked( getStage().screenToStageCoordinates(coordV), button );
+        }
+
+        return false;
+    }
+
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         boolean res = super.touchDown( screenX, screenY, pointer, button);
+        if ( res )
+            return res;
         if ( button == Input.Buttons.LEFT && currentController != null ) {
             coordV.set( screenX, screenY );
-            currentController.touchDown(getStage().screenToStageCoordinates(coordV));
+            res =  currentController.touchDown(getStage().screenToStageCoordinates(coordV));
         }
+        if ( res )
+            return res;
+
+//        Gdx.app.log("EditorScreen.touchDown", "Event unprocessed");
+
         return res;
     }
 
@@ -176,10 +209,19 @@ public class EditorScreen extends BaseScreen {
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
         boolean res = super.touchUp( screenX,screenY, pointer, button );
 
+        if ( res )
+            return res;
+
         if ( button == Input.Buttons.LEFT && currentController != null ) {
             coordV.set( screenX, screenY );
-            currentController.touchUp( getStage().screenToStageCoordinates(coordV), button );
+            res = currentController.touchUp( getStage().screenToStageCoordinates(coordV), button );
         }
+
+        if ( res )
+            return res;
+
+//        Gdx.app.log("EditorScreen.touchUp", "Event unprocessed");
+
         return res;
     }
 
@@ -187,10 +229,18 @@ public class EditorScreen extends BaseScreen {
     public boolean touchDragged(int screenX, int screenY, int pointer) {
         boolean res = super.touchDragged( screenX, screenY, pointer );
 
+        if ( res )
+            return res;
+
         if ( Gdx.input.isButtonPressed( Input.Buttons.LEFT ) && currentController != null ) {
             coordV.set( screenX, screenY );
-            currentController.touchDragged( getStage().screenToStageCoordinates(coordV) );
+            res = currentController.touchDragged( getStage().screenToStageCoordinates(coordV) );
         }
+        if ( res )
+            return res;
+
+//        Gdx.app.log("EditorScreen.touchDragged", "Event unhandled");
+
         return res;
     }
 }

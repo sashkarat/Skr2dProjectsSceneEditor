@@ -4,20 +4,26 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.SnapshotArray;
-import org.skr.gdx.SkrGdxApplication;
+import org.skr.gdx.utils.ModShapeRenderer;
+import org.skr.gdx.utils.RectangleExt;
+import org.skr.gdx.utils.Utils;
 
 import java.util.Stack;
 
 /**
  * Created by rat on 31.05.14.
+ *
  */
 public class AnimatedActorGroup extends Group {
+
+    private static ModShapeRenderer modShapeRenderer = null;
 
     public interface RenderableUserObject {
         public void render( AnimatedActorGroup aag, Batch batch );
@@ -26,7 +32,7 @@ public class AnimatedActorGroup extends Group {
 
     public interface GlobalSizeChangedListener {
         public void sizeChanged(AnimatedActorGroup aag);
-    };
+    }
 
     private static GlobalSizeChangedListener globalSizeChangedListener;
 
@@ -46,7 +52,7 @@ public class AnimatedActorGroup extends Group {
     private float stateTime = 0;
     private int count;
 
-    private RenderableUserObject renderableUserObject;
+    RectangleExt boundingBox = new RectangleExt();
 
     public AnimatedActorGroup( TextureAtlas atlas ) {
         updateTextures( atlas );
@@ -98,14 +104,6 @@ public class AnimatedActorGroup extends Group {
 
     public void setDrawable(boolean drawable) {
         this.drawable = drawable;
-    }
-
-    public RenderableUserObject getRenderableUserObject() {
-        return renderableUserObject;
-    }
-
-    public void setRenderableUserObject(RenderableUserObject renderableUserObject) {
-        this.renderableUserObject = renderableUserObject;
     }
 
     // ================================================================
@@ -167,7 +165,7 @@ public class AnimatedActorGroup extends Group {
 
     }
 
-    public void updateTextures( TextureAtlas atlas ) {
+    public boolean updateTextures( TextureAtlas atlas ) {
 
         if ( animation != null )
             animation = null;
@@ -175,7 +173,7 @@ public class AnimatedActorGroup extends Group {
             currentRegion = null;
 
         if ( textureName.isEmpty() ) {
-            return;
+            return false;
         }
 
         stateTime = 0;
@@ -185,6 +183,12 @@ public class AnimatedActorGroup extends Group {
             Array<TextureAtlas.AtlasRegion> tex = atlas.findRegions(textureName);
             animation = new Animation(frameDuration, tex, playMode);
             stateTime = 0;
+            int l = animation.getKeyFrames().length;
+            if ( l == 0 ) {
+                animation = null;
+                currentRegion = null;
+                return false;
+            }
             currentRegion = animation.getKeyFrame(stateTime);
 
         }
@@ -195,9 +199,12 @@ public class AnimatedActorGroup extends Group {
 
         for ( Actor a: children ) {
             if ( a instanceof AnimatedActorGroup ) {
-                ((AnimatedActorGroup) a).updateTextures( atlas );
+                if ( !((AnimatedActorGroup) a).updateTextures( atlas ) )
+                    continue;
             }
         }
+
+        return true;
     }
 
     @Override
@@ -306,10 +313,108 @@ public class AnimatedActorGroup extends Group {
         stateTime += delta;
         currentRegion = animation.getKeyFrame( stateTime );
 
+//        updateBoundingBox();
+    }
+
+
+    public RectangleExt getBoundingBox() {
+        updateBoundingBox();
+        return boundingBox;
+    }
+
+    public boolean contains( Vector2 localPoint ) {
+
+        float w2 = Math.abs( getWidth() / 2 );
+
+        if( localPoint.x <  - w2 ) {
+            return false;
+        }
+        if ( localPoint.x > w2 ) {
+            return false;
+        }
+
+        float h2 = Math.abs( getHeight() /2 );
+
+        if ( localPoint.y < -h2 )
+            return false;
+
+        if ( localPoint.y > h2 )
+            return false;
+
+        return true;
+    }
+
+
+    public AnimatedActorGroup getAag(Vector2 localCoord) {
+
+        AnimatedActorGroup aagRes;
+
+        Vector2 chCoord = new Vector2();
+
+        for ( Actor a : getChildren() ) {
+            if (!( a instanceof AnimatedActorGroup) )
+                continue;
+            AnimatedActorGroup aag = (AnimatedActorGroup) a;
+            chCoord.set(localCoord);
+            aag.parentToLocalCoordinates(chCoord);
+            aagRes = aag.getAag(chCoord);
+            if ( aagRes != null )
+                return aagRes;
+        }
+        if ( contains( localCoord ) ) {
+            return this;
+        }
+        return null;
+    }
+
+    private final static RectangleExt box = new RectangleExt();
+
+    private final RectangleExt chBBox = new RectangleExt();
+
+    private void updateBoundingBox() {
+
+        box.set( getX() - getWidth()/2, getY() - getHeight()/2, getWidth(), getHeight() );
+
+        boundingBox.set(Utils.getBBox(box, getWidth() / 2, getHeight() / 2, getRotation()));
+
+        for ( int i = 0; i < getChildren().size; i++) {
+            AnimatedActorGroup aagCh = (AnimatedActorGroup) getChildren().get( i );
+
+            chBBox.set(aagCh.getBoundingBox());
+            chBBox.setX( chBBox.getX() + getX() );
+            chBBox.setY( chBBox.getY() + getY() );
+
+            chBBox.set( Utils.getBBox(chBBox, getX() - chBBox.getX(), getY() - chBBox.getY(), getRotation()) );
+
+            boundingBox.set( Utils.getBBox( boundingBox, chBBox ) );
+        }
+
+    }
+
+
+    private void drawBoundingBox( Batch batch, float parentAlpha ) {
+        batch.end();
+        modShapeRenderer.setProjectionMatrix( batch.getProjectionMatrix() );
+        modShapeRenderer.setTransformMatrix( batch.getTransformMatrix() );
+
+        modShapeRenderer.begin(ShapeRenderer.ShapeType.Line );
+
+
+        if ( boundingBox != null ) {
+            modShapeRenderer.setColor( 0.7f, 0.7f, 0.7f, 1);
+            modShapeRenderer.rect(boundingBox.getX(), boundingBox.getY(),
+                    boundingBox.getWidth(), boundingBox.getHeight());
+        }
+
+        modShapeRenderer.end();
+        batch.begin();
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
+
+        if ( modShapeRenderer == null )
+            modShapeRenderer = new ModShapeRenderer();
 
 
         if ( isDrawable() && currentRegion != null ) {
@@ -320,11 +425,21 @@ public class AnimatedActorGroup extends Group {
             float hH = getHeight() / 2;
 
             batch.draw(currentRegion, getX() - hW, getY() - hH, hW, hH, getWidth(), getHeight(), 1, 1, getRotation());
+
+//            if ( getParent() == null || !(getParent() instanceof AnimatedActorGroup) ) {
+//                    drawBoundingBox(batch, parentAlpha );
+//            }
+
         }
 
-        if (renderableUserObject != null) {
-                renderableUserObject.render(this, batch);
+        Object obj = getUserObject();
+        if (obj != null) {
+            if (obj instanceof RenderableUserObject) {
+                ((RenderableUserObject) obj).render(this, batch);
+            }
         }
+
+
 
         super.draw( batch, parentAlpha );
 

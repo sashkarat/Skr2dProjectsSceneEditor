@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import org.skr.gdx.editor.controller.Controller;
+import org.skr.gdx.editor.Controller;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 
 /**
@@ -61,11 +61,11 @@ public class AagController extends Controller implements AnimatedActorGroup.Rend
 
     public void setAag(AnimatedActorGroup aag) {
         if ( this.aag != null ) {
-            this.aag.setRenderableUserObject( null );
+            this.aag.setUserObject( null );
         }
 
         this.aag = aag;
-        this.aag.setRenderableUserObject( this );
+        this.aag.setUserObject( this );
     }
 
     public AnimatedActorGroup getAag() {
