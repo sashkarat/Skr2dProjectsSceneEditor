@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.SerializationException;
 import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.physmodel.PhysModel;
 import org.skr.gdx.utils.ModShapeRenderer;
 
 /**
@@ -440,6 +441,25 @@ public class PhysScene extends Group {
         }
     }
 
+
+    public void removePhysModelDescriptionHandler( PhysModelDescriptionHandler mdh ) {
+        Array<PhysModelItem> miToRemove = new Array<PhysModelItem>();
+
+        for ( Actor a : getChildren() ) {
+            if ( !(a instanceof PhysModelItem) )
+                continue;
+
+            PhysModelItem mi = (PhysModelItem) a;
+            if ( mi.getDescriptionHandler() == mdh ) {
+                miToRemove.add( mi );
+            }
+        }
+
+        for ( PhysModelItem mi : miToRemove )
+            removePhysModelItem( mi );
+
+        modelDescriptionHandlers.removeValue( mdh, true );
+    }
 
     public void removePhysModelItem ( PhysModelItem modelItem ) {
         modelItem.clear();

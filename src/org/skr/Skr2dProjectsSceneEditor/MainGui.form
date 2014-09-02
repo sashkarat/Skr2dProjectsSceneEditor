@@ -2,7 +2,7 @@
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="org.skr.Skr2dProjectsSceneEditor.MainGui">
   <grid id="27dc6" binding="rootPanel" layout-manager="GridBagLayout">
     <constraints>
-      <xy x="20" y="20" width="1005" height="631"/>
+      <xy x="20" y="20" width="1089" height="631"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -200,58 +200,6 @@
         <properties/>
         <border type="etched"/>
         <children>
-          <grid id="20007" layout-manager="GridBagLayout">
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-              <gridbag weightx="0.0" weighty="0.0"/>
-            </constraints>
-            <properties/>
-            <border type="etched" title="Scene Project"/>
-            <children>
-              <component id="6b780" class="javax.swing.JButton" binding="btnNewScene">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                  <gridbag weightx="0.0" weighty="0.0"/>
-                </constraints>
-                <properties>
-                  <text value="New"/>
-                </properties>
-              </component>
-              <component id="da7ff" class="javax.swing.JButton" binding="btnLoadScene">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                  <gridbag weightx="0.0" weighty="0.0"/>
-                </constraints>
-                <properties>
-                  <text value="Load"/>
-                </properties>
-              </component>
-              <component id="aa190" class="javax.swing.JButton" binding="btnSaveScane">
-                <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                  <gridbag weightx="0.0" weighty="0.0"/>
-                </constraints>
-                <properties>
-                  <text value="Save"/>
-                </properties>
-              </component>
-              <component id="70763" class="javax.swing.JButton" binding="btnSaveSceneAs">
-                <constraints>
-                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                  <gridbag weightx="0.0" weighty="0.0"/>
-                </constraints>
-                <properties>
-                  <text value="Save As"/>
-                </properties>
-              </component>
-              <hspacer id="5b6e6">
-                <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                  <gridbag weightx="0.0" weighty="0.0"/>
-                </constraints>
-              </hspacer>
-            </children>
-          </grid>
           <hspacer id="34d28">
             <constraints>
               <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
@@ -348,6 +296,23 @@
                 <properties>
                   <text value="Step"/>
                 </properties>
+              </component>
+            </children>
+          </grid>
+          <grid id="b7fb0" layout-manager="GridBagLayout">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <gridbag weightx="0.0" weighty="0.0"/>
+            </constraints>
+            <properties/>
+            <border type="etched" title="Selection Mode"/>
+            <children>
+              <component id="7f972" class="javax.swing.JComboBox" binding="comboSelectionMode">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                  <gridbag weightx="0.0" weighty="0.0"/>
+                </constraints>
+                <properties/>
               </component>
             </children>
           </grid>

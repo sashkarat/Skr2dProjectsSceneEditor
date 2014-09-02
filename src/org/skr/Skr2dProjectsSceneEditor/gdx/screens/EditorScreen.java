@@ -6,19 +6,32 @@ import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.AagController;
+import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.ModelsController;
 import org.skr.gdx.PhysWorld;
 import org.skr.gdx.editor.BaseScreen;
 import org.skr.gdx.editor.Controller;
+import org.skr.gdx.physmodel.BodyItem;
+import org.skr.gdx.physmodel.PhysModel;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
+import org.skr.gdx.scene.Layer;
+import org.skr.gdx.scene.PhysModelItem;
 import org.skr.gdx.scene.PhysScene;
+import org.skr.gdx.scene.TiledActor;
 import org.skr.gdx.utils.ModShapeRenderer;
+import org.skr.gdx.utils.RectangleExt;
 
 /**
  * Created by rat on 02.08.14.
  */
 public class EditorScreen extends BaseScreen {
+
+    public static enum SelectionMode {
+        DISABLED,
+        MODEL_ITEM
+    }
 
     public static enum DebugResolution {
         R_NONE,
@@ -29,10 +42,17 @@ public class EditorScreen extends BaseScreen {
         R_2560x1600
     }
 
+    public interface SelectionListener {
+        void itemsSelected( Object object, boolean ctrl );
+    }
+
     public static class SceneHolder extends Group {
 
     }
 
+    SelectionMode selectionMode = SelectionMode.DISABLED;
+
+    Layer currentLayer = null;
 
     DebugResolution debugViewRectResolution = DebugResolution.R_NONE;
 
@@ -40,9 +60,11 @@ public class EditorScreen extends BaseScreen {
 
     SceneHolder sceneHolder;
 
+    SelectionListener selectionListener = null;
 
     Controller currentController = null;
     AagController aagController = null;
+    ModelsController modelsController = null;
 
 
     public EditorScreen() {
@@ -50,7 +72,24 @@ public class EditorScreen extends BaseScreen {
         sceneHolder = new SceneHolder();
         getStage().addActor( sceneHolder );
         aagController = new AagController( getStage() );
+        modelsController = new ModelsController( getStage() );
 
+    }
+
+    public SelectionListener getSelectionListener() {
+        return selectionListener;
+    }
+
+    public void setSelectionListener(SelectionListener selectionListener) {
+        this.selectionListener = selectionListener;
+    }
+
+    public SelectionMode getSelectionMode() {
+        return selectionMode;
+    }
+
+    public void setSelectionMode(SelectionMode selectionMode) {
+        this.selectionMode = selectionMode;
     }
 
     public PhysScene getScene() {
@@ -69,6 +108,22 @@ public class EditorScreen extends BaseScreen {
         sceneHolder.addActor( scene );
     }
 
+    public AagController getAagController() {
+        return aagController;
+    }
+
+    public void setAagController(AagController aagController) {
+        this.aagController = aagController;
+    }
+
+    public ModelsController getModelsController() {
+        return modelsController;
+    }
+
+    public void setModelsController(ModelsController modelsController) {
+        this.modelsController = modelsController;
+    }
+
     public void setControllableObject( Object object ) {
 
         if ( aagController.getAag() != null ) {
@@ -76,12 +131,38 @@ public class EditorScreen extends BaseScreen {
         }
 
         if ( object instanceof AnimatedActorGroup ) {
-            aagController.setAag( (AnimatedActorGroup) object  );
+            aagController.setAag((AnimatedActorGroup) object);
             currentController = aagController;
-            return;
+            currentLayer = findParentLayer((Actor) object);
+        } else if ( object instanceof TiledActor) {
+            currentController = null;
+            currentLayer = findParentLayer((Actor) object);
+        } else if ( object instanceof PhysModelItem ) {
+            modelsController.addModelItem((PhysModelItem) object);
+            currentController = modelsController;
+            currentLayer = null;
+        } else if (object instanceof Layer) {
+            currentLayer = (Layer) object;
+        } else {
+            currentController = null;
+        }
+
+        if ( currentLayer != null ) {
+            Gdx.app.log("EditorScreen.setControllableObject", "Layer: " + currentLayer.getName() );
         }
     }
 
+    Layer findParentLayer( Actor actor ) {
+        Group gp = actor.getParent();
+        while ( gp != null ) {
+            if ( !(gp instanceof Layer) ) {
+                gp = gp.getParent();
+            } else {
+                return (Layer) gp;
+            }
+        }
+        return null;
+    }
 
     public DebugResolution getDebugViewRectResolution() {
         return debugViewRectResolution;
@@ -137,11 +218,6 @@ public class EditorScreen extends BaseScreen {
                 break;
         }
         getShapeRenderer().end();
-
-
-
-
-
     }
 
     private void drawViewRect(float w, float h) {
@@ -164,8 +240,7 @@ public class EditorScreen extends BaseScreen {
             return res;
         if ( button == Input.Buttons.LEFT )  {
             coordV.set( screenX, screenY );
-            //TODO: implement selection
-//            res = processSelection(getStage().screenToStageCoordinates(coordV));
+            res = processSelection(getStage().screenToStageCoordinates(coordV));
         }
 
         if ( res )
@@ -174,6 +249,50 @@ public class EditorScreen extends BaseScreen {
         return false;
     }
 
+
+    void itemSelected( PhysModelItem mi ) {
+        boolean ctrl = false;
+
+        if ( Gdx.input.isKeyPressed( Input.Keys.CONTROL_LEFT) ) {
+           ctrl = true;
+        }
+        if ( selectionListener != null ) {
+            selectionListener.itemsSelected(mi, ctrl);
+        }
+    }
+
+    boolean processSelection( Vector2 stageCoord ) {
+
+        switch (selectionMode) {
+            case DISABLED:
+                return false;
+            case MODEL_ITEM:
+                return processModelItemSelection( stageCoord );
+        }
+
+        return false;
+
+    }
+
+    boolean processModelItemSelection( Vector2 stageCoord ) {
+        for ( Actor a : scene.getChildren() ) {
+            if ( !(a instanceof PhysModelItem ) )
+                continue;
+
+            PhysModelItem mi = (PhysModelItem) a;
+
+            for (BodyItem  bi : mi.getModel().getBodyItems() ) {
+                RectangleExt bb = bi.getBoundingBox();
+                if ( !bb.contains( stageCoord ) )
+                    continue;
+//                Gdx.app.log("EditorScreen.processSelection", "ModelItem: " + mi);
+                itemSelected( mi );
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     @Override
     protected boolean doubleClicked(int screenX, int screenY, int button) {

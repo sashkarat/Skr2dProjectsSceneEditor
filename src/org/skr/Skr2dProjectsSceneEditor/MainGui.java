@@ -11,9 +11,11 @@ import org.skr.Skr2dProjectsSceneEditor.gdx.SkrGdxAppSceneEditor;
 import org.skr.Skr2dProjectsSceneEditor.gdx.screens.EditorScreen;
 import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.editor.Controller;
 import org.skr.gdx.physmodel.animatedactorgroup.AagDescription;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.scene.*;
+import sun.reflect.generics.tree.Tree;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
@@ -26,6 +28,8 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
 import java.io.File;
 
 /**
@@ -45,10 +49,6 @@ public class MainGui extends JFrame {
     private JTabbedPane tabbedPane2;
     private JTabbedPane tabPnTrees;
     private JTree treeScene;
-    private JButton btnNewScene;
-    private JButton btnLoadScene;
-    private JButton btnSaveScane;
-    private JButton btnSaveSceneAs;
     private JTextField tfTexAtlasFilePath;
     private JButton btnBrowseTexAtlasFile;
     private JPanel panelProperties;
@@ -66,6 +66,7 @@ public class MainGui extends JFrame {
     private JTextField tfTargetFps;
     private JButton btnUpdatePhParameters;
     private JButton btnDoPhysWorldStep;
+    private JComboBox comboSelectionMode;
 
 
     private Timer cameraDataRefreshTimer;
@@ -97,11 +98,15 @@ public class MainGui extends JFrame {
         });
 
 
+        for ( EditorScreen.SelectionMode mode : EditorScreen.SelectionMode.values() ) {
+            comboSelectionMode.addItem( mode );
+        }
+
 
         gApp = new SkrGdxAppSceneEditor();
         final LwjglAWTCanvas gdxCanvas = new LwjglAWTCanvas( gApp );
 
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setContentPane(rootPanel);
         panelGdx.add(gdxCanvas.getCanvas(), BorderLayout.CENTER);
         pack();
@@ -111,7 +116,7 @@ public class MainGui extends JFrame {
 
         loadJTree();
 
-        MainGuiWindowListener guiWindowListener = new MainGuiWindowListener();
+        MainGuiWindowListener guiWindowListener = new MainGuiWindowListener( this );
         addWindowListener(guiWindowListener);
         guiWindowListener.addTimer( cameraDataRefreshTimer );
         PhysScene.setSceneStateListener( sceneStateListener );
@@ -135,44 +140,12 @@ public class MainGui extends JFrame {
         tableProperties.setDefaultRenderer(PropertiesBaseTableModel.Property.class,
                 new PropertiesTableCellRenderer() );
 
-        Gdx.app.postRunnable( new Runnable() {
-            @Override
-            public void run() {
-                editorScreen = gApp.getEditorScreen();
-                chbDebugRender.setSelected( Environment.debugRender );
-                chbDisplayGrid.setSelected( editorScreen.isDisplayGrid() );
-                chbDisplayGridFirst.setSelected( editorScreen.isDisplayGridFirst() );
-                cameraDataRefreshTimer.start();
-            }
-        });
 
+        setupMenu();
+        setupGdxApp();
         setTitle("Skr2DProjectsSceneEditor");
 
 
-        btnNewScene.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createNewScene();
-            }
-        });
-        btnLoadScene.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                loadScene();
-            }
-        });
-        btnSaveScane.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveScene();
-            }
-        });
-        btnSaveSceneAs.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveSceneAs();
-            }
-        });
         btnBrowseTexAtlasFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -245,6 +218,113 @@ public class MainGui extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updatePhysWorldParameters();
+            }
+        });
+        comboSelectionMode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeSelectionMode();
+            }
+        });
+    }
+
+
+    private void setupMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menu = new JMenu("Scene");
+
+        JMenuItem mnuItem = new JMenuItem("New");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK) );
+        mnuItem.addActionListener( new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createNewScene();
+            }
+        });
+        menu.add( mnuItem );
+
+        mnuItem = new JMenuItem("Load");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, ActionEvent.CTRL_MASK) );
+        mnuItem.addActionListener( new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                loadScene();
+            }
+        });
+        menu.add(mnuItem);
+
+
+        mnuItem = new JMenuItem("Save");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK) );
+        mnuItem.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveScene();
+            }
+        });
+        menu.add(mnuItem);
+
+
+        mnuItem = new JMenuItem("Save As ...");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK ) );
+        mnuItem.addActionListener( new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveSceneAs();
+            }
+        });
+        menu.add(mnuItem);
+        menu.addSeparator();
+
+
+        menu.addSeparator();
+        mnuItem = new JMenuItem("Exit");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK) );
+        mnuItem.addActionListener( new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                processExitCall();
+            }
+        });
+        menu.add(mnuItem);
+
+
+        menuBar.add( menu );
+        setJMenuBar(menuBar);
+
+    }
+
+    private void setupGdxApp() {
+        Gdx.app.postRunnable( new Runnable() {
+            @Override
+            public void run() {
+                editorScreen = gApp.getEditorScreen();
+                chbDebugRender.setSelected( Environment.debugRender );
+                chbDisplayGrid.setSelected( editorScreen.isDisplayGrid() );
+                chbDisplayGridFirst.setSelected( editorScreen.isDisplayGridFirst() );
+                cameraDataRefreshTimer.start();
+
+                editorScreen.getModelsController().setControlPointListener( new Controller.controlPointListener() {
+                    @Override
+                    public void changed(Object controlledObject, Controller.ControlPoint controlPoint) {
+                        onModelsChangedByController();
+                    }
+                });
+
+                editorScreen.getAagController().setControlPointListener( new Controller.controlPointListener() {
+                    @Override
+                    public void changed(Object controlledObject, Controller.ControlPoint controlPoint) {
+                        onAagChangedByController();
+                    }
+                });
+
+                editorScreen.setSelectionListener( new EditorScreen.SelectionListener() {
+                    @Override
+                    public void itemsSelected(Object object, boolean ctrl) {
+                        onItemSelectedByScreen( object, ctrl );
+                    }
+                });
+
             }
         });
     }
@@ -530,9 +610,76 @@ public class MainGui extends JFrame {
         }
     }
 
+
+    SceneTreeNode findNode(SceneTreeNode parentNode, Object object ) {
+
+        if ( parentNode == null )
+            parentNode = (SceneTreeNode) treeSceneModel.getRoot();
+
+        if ( parentNode.getUserObject() == object ) {
+            return parentNode;
+        }
+
+        for ( int index = 0; index < parentNode.getChildCount(); index ++ ) {
+            SceneTreeNode tn = (SceneTreeNode) parentNode.getChildAt( index );
+            tn = findNode( tn, object);
+            if ( tn != null )
+                return tn;
+        }
+        return null;
+    }
+
+    void selectSingleNode( SceneTreeNode node ) {
+        TreePath tp = new TreePath( node.getPath() );
+        treeScene.setSelectionPath( tp );
+        treeScene.scrollPathToVisible( tp );
+        processJTreeSelection( null );
+    }
+
+    void selectSingleObject( Object object ) {
+        SceneTreeNode node = findNode( null, object );
+        if ( node == null )
+            return;
+        selectSingleNode( node );
+    }
+
+    void addObjectToSelection( Object object) {
+        SceneTreeNode node = findNode( null,  object );
+        if ( node == null )
+            return;
+
+        boolean rm = false;
+
+        for ( TreePath tp : treeScene.getSelectionPaths() ) {
+            if ( tp.getLastPathComponent() == node ) {
+                treeScene.removeSelectionPath( tp );
+                rm = true;
+                break;
+            }
+        }
+
+        if ( ! rm ) {
+            treeScene.addSelectionPath( new TreePath( node.getPath() ) ) ;
+        }
+
+        processJTreeSelection( null );
+    }
+
     void processJTreeSelection( TreeSelectionEvent e ) {
+        if ( scene == null )
+            return;
+
         propertiesCellEditor.cancelEditing();
         tableProperties.setModel( defaultTableModel );
+
+        if ( treeScene.getSelectionPaths() == null )
+            return;
+
+        if ( treeScene.getSelectionPaths().length > 1 ) {
+            processJTreeMultiSelection();
+            return;
+        }
+
         SceneTreeNode node = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
         if ( node == null )
             return;
@@ -553,6 +700,7 @@ public class MainGui extends JFrame {
             case MODEL_ITEM:
                 modelItemPropertiesTableModel.setModelItem((PhysModelItem) node.getUserObject());
                 tableProperties.setModel( modelItemPropertiesTableModel );
+                editorScreen.getModelsController().clearSelection();
                 break;
             case LAYERS_GROUP:
                 break;
@@ -570,6 +718,54 @@ public class MainGui extends JFrame {
 
         editorScreen.setControllableObject( node.getUserObject() );
     }
+
+
+    void processJTreeMultiSelection() {
+
+        SceneTreeNode.Type type = cleanupJTreeSelection();
+
+        final TreePath [] selectionPaths = treeScene.getSelectionPaths();
+        if ( selectionPaths == null )
+            return;
+        if ( selectionPaths.length == 1 ) {
+            processJTreeSelection( null );
+            return;
+        }
+
+        if ( type != SceneTreeNode.Type.MODEL_ITEM)
+            return;
+
+        Gdx.app.postRunnable( new Runnable() {
+            @Override
+            public void run() {
+                editorScreen.getModelsController().clearSelection();
+                for ( TreePath tp : selectionPaths ) {
+                    SceneTreeNode node = (SceneTreeNode) tp.getLastPathComponent();
+                    editorScreen.setControllableObject( node.getUserObject() );
+                }
+            }
+        });
+    }
+
+    SceneTreeNode.Type cleanupJTreeSelection() {
+        TreePath [] selectionPaths = treeScene.getSelectionPaths();
+
+        Array<TreePath> pathsToRemove = new Array<TreePath>();
+        SceneTreeNode firstNode = (SceneTreeNode) selectionPaths[0].getLastPathComponent();
+        for ( TreePath tp : selectionPaths ) {
+            SceneTreeNode node = (SceneTreeNode) tp.getLastPathComponent();
+            if ( node.getType() != firstNode.getType() ) {
+                pathsToRemove.add( tp );
+            }
+        }
+        for ( TreePath tp : pathsToRemove ) {
+            treeScene.removeSelectionPath( tp );
+        }
+
+        return firstNode.getType();
+    }
+
+
 
     private static final NewNodeSelectorDialog newNodeDlg = new NewNodeSelectorDialog();
     static {
@@ -774,10 +970,22 @@ public class MainGui extends JFrame {
             case MODELS:
                 break;
             case MODEL_DESC_HANDLER:
+                final PhysModelDescriptionHandler mdh = (PhysModelDescriptionHandler) currentNode.getUserObject();
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        scene.removePhysModelDescriptionHandler(mdh);
+                    }
+                });
                 break;
             case MODEL_ITEM:
-                PhysModelItem modelItem = (PhysModelItem) currentNode.getUserObject();
-                scene.removePhysModelItem( modelItem );
+                final PhysModelItem modelItem = (PhysModelItem) currentNode.getUserObject();
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        scene.removePhysModelItem(modelItem);
+                    }
+                });
                 break;
             case LAYERS_GROUP:
                 return;
@@ -877,6 +1085,33 @@ public class MainGui extends JFrame {
         if ( scene == null )
             return;
         scene.doPhysWorldStep();
+    }
+
+
+    void onModelsChangedByController() {
+        modelItemPropertiesTableModel.fireTableDataChanged();
+    }
+
+    void onAagChangedByController() {
+        aagPropertiesTableModel.fireTableDataChanged();
+    }
+
+
+    void processExitCall() {
+        dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+    }
+
+    void changeSelectionMode() {
+        EditorScreen.SelectionMode mode = (EditorScreen.SelectionMode) comboSelectionMode.getSelectedItem();
+        editorScreen.setSelectionMode( mode );
+    }
+
+    void onItemSelectedByScreen( Object object, boolean ctrl ) {
+        if ( !ctrl ) {
+            selectSingleObject(object);
+        } else {
+            addObjectToSelection( object );
+        }
     }
 
     // ====================== static ================================

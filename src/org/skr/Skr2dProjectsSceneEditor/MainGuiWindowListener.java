@@ -12,7 +12,11 @@ import java.awt.event.WindowListener;
 public class MainGuiWindowListener implements WindowListener {
 
     Array<Timer> timers = new Array<Timer>();
+    MainGui gui;
 
+    public MainGuiWindowListener(MainGui gui) {
+        this.gui = gui;
+    }
 
     public void addTimer( Timer timer ) {
         timers.add( timer );
@@ -30,6 +34,9 @@ public class MainGuiWindowListener implements WindowListener {
     @Override
     public void windowClosing(WindowEvent e) {
 
+        //TODO: add onExit request processing
+
+        e.getWindow().dispose();
     }
 
     @Override
