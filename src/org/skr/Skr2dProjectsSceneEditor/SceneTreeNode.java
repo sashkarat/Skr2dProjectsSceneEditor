@@ -14,13 +14,22 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
         LAYERS_GROUP,
         LAYER,
         TILED_ACTOR,
-        AAG
+        AAG,
+        SELECTION_GROUPS,
+        SELECTION_GROUP
         }
 
     private Type type;
+    private String name = null;
 
     public SceneTreeNode(Type type, Object object ) {
         this.type = type;
+        setUserObject( object );
+    }
+
+    public SceneTreeNode(Type type, Object object, String name ) {
+        this.type = type;
+        this.name = name;
         setUserObject( object );
     }
 
@@ -28,26 +37,21 @@ public class SceneTreeNode extends DefaultMutableTreeNode {
         return type;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
     public String toString() {
-        switch ( type ) {
 
-            case ROOT:
-                break;
-            case MODELS:
-                return ": MODELS ";
-            case MODEL_DESC_HANDLER:
-                break;
-            case MODEL_ITEM:
-                break;
-            case LAYERS_GROUP:
-                break;
-            case LAYER:
-                break;
-            case TILED_ACTOR:
-                break;
-            case AAG:
-                break;
+        if ( name != null ) {
+            if ( !name.isEmpty() ) {
+                return name;
+            }
         }
 
         if ( getUserObject() != null )

@@ -258,7 +258,7 @@ public abstract  class Controller  {
         return boundingBoxControlPoints.get(3);
     }
 
-    protected ControlPoint getPosControlPoint() {
+    public ControlPoint getPosControlPoint() {
         return posControlPoint;
     }
 

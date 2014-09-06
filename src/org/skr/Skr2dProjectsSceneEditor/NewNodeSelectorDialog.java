@@ -224,6 +224,7 @@ public class NewNodeSelectorDialog extends JDialog {
         accepted = false;
         newNode = null;
         selectedType = null;
+        pack();
         setVisible(true);
         if ( accepted )
             createNewNode();

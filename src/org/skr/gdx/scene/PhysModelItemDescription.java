@@ -4,6 +4,8 @@ package org.skr.gdx.scene;
  * Created by rat on 03.08.14.
  */
 public class PhysModelItemDescription {
+
+    int id = -1;
     String modelUuid;
     String name = "";
     PhysModelItem.BasePoint basePoint = new PhysModelItem.BasePoint();
@@ -30,5 +32,13 @@ public class PhysModelItemDescription {
 
     public void setBasePoint(PhysModelItem.BasePoint basePoint) {
         this.basePoint = basePoint;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

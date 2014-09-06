@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.DelayedRemovalArray;
 import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.AagController;
 import org.skr.Skr2dProjectsSceneEditor.gdx.controllers.ModelsController;
 import org.skr.gdx.PhysWorld;
@@ -22,6 +24,9 @@ import org.skr.gdx.scene.PhysScene;
 import org.skr.gdx.scene.TiledActor;
 import org.skr.gdx.utils.ModShapeRenderer;
 import org.skr.gdx.utils.RectangleExt;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 
 /**
  * Created by rat on 02.08.14.
@@ -130,6 +135,12 @@ public class EditorScreen extends BaseScreen {
             aagController.getAag().setUserObject( null );
         }
 
+        if ( object == null ) {
+            currentController = null;
+            currentLayer = null;
+            return;
+        }
+
         if ( object instanceof AnimatedActorGroup ) {
             aagController.setAag((AnimatedActorGroup) object);
             currentController = aagController;
@@ -143,8 +154,19 @@ public class EditorScreen extends BaseScreen {
             currentLayer = null;
         } else if (object instanceof Layer) {
             currentLayer = (Layer) object;
+        } else if ( object instanceof Array ) {
+            // TODO: recode this
+
+            Gdx.app.log("EditorScreen.setControllableObject", "Array Class: " + object.getClass().getComponentType() );
+
+            Array<PhysModelItem> modelItems = (Array<PhysModelItem>) object;
+            for ( PhysModelItem mi : modelItems )
+                modelsController.addModelItem( mi );
+            currentLayer = null;
+            currentController = modelsController;
         } else {
             currentController = null;
+            currentLayer = null;
         }
 
         if ( currentLayer != null ) {

@@ -18,7 +18,10 @@ public class PhysModelItemPropertiesTableModel extends PropertiesBaseTableModel 
         BasePointViewX(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         BasePointViewY(PropertyType.NUMBER, DataRole.VIEW_COORDINATES),
         BasePointPhysX(PropertyType.NUMBER, DataRole.PHYS_COORDINATES),
-        BasePointPhysY(PropertyType.NUMBER, DataRole.PHYS_COORDINATES);
+        BasePointPhysY(PropertyType.NUMBER, DataRole.PHYS_COORDINATES),
+        Active(PropertyType.BOOLEAN),
+        Id(PropertyType.NUMBER, false );
+
 
         private PropertyType propertyType;
         private DataRole dataRole = DataRole.DEFAULT;
@@ -112,6 +115,10 @@ public class PhysModelItemPropertiesTableModel extends PropertiesBaseTableModel 
                 return modelItem.getBasePointPhysX();
             case BasePointPhysY:
                 return modelItem.getBasePointPhysY();
+            case Active:
+                return modelItem.isActive();
+            case Id:
+                return modelItem.getId();
         }
         return null;
     }
@@ -134,6 +141,11 @@ public class PhysModelItemPropertiesTableModel extends PropertiesBaseTableModel 
                 break;
             case BasePointPhysY:
                 modelItem.translateBasePointYTo_phys((Float) aValue );
+                break;
+            case Active:
+                modelItem.setActive((Boolean) aValue);
+                break;
+            case Id:
                 break;
         }
         fireTableDataChanged();

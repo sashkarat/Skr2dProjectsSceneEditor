@@ -12,21 +12,25 @@ import org.skr.gdx.physmodel.PhysModel;
  * Created by rat on 03.08.14.
  */
 public class PhysModelItem extends Group {
-    PhysModel model = null;
-    PhysScene scene = null;
-    PhysModelDescriptionHandler descriptionHandler;
 
     public static class BasePoint {
         float physX = 0;
         float physY = 0;
         float angleRad = 0;
+
     }
 
+    int id = -1;
+    PhysModel model = null;
+    PhysScene scene = null;
+    PhysModelDescriptionHandler descriptionHandler;
     BasePoint basePoint = new BasePoint();
+    boolean liveBasePoint = false;
 
     public PhysModelItem(  PhysScene scene ) {
         this.scene = scene;
         setName("");
+        id = scene.genModelItemId();
     }
 
     public void clear() {
@@ -42,6 +46,28 @@ public class PhysModelItem extends Group {
         }
 
         model = null;
+    }
+
+    public boolean isActive() {
+        if ( model.getBodyItems().size == 0 )
+            return false;
+        return model.getBodyItems().get(0).getBody().isActive();
+    }
+
+    public void setActive( boolean active ) {
+        if ( model.getBodyItems().size == 0 )
+            return;
+        for( BodyItem bi : model.getBodyItems() )
+            bi.getBody().setActive( active );
+    }
+
+
+    public boolean isLiveBasePoint() {
+        return liveBasePoint;
+    }
+
+    public void setLiveBasePoint(boolean liveBasePoint) {
+        this.liveBasePoint = liveBasePoint;
     }
 
     public PhysModelDescriptionHandler getDescriptionHandler() {
@@ -159,6 +185,10 @@ public class PhysModelItem extends Group {
         return basePoint.physY;
     }
 
+    public int getId() {
+        return id;
+    }
+
     public void loadFromDescription( PhysModelItemDescription desc ) {
         String uuidString = desc.getModelUuid();
 
@@ -168,6 +198,9 @@ public class PhysModelItem extends Group {
             return;
         }
         setName(desc.getName());
+        this.id = desc.getId();
+        if ( id < 0 )
+            id = scene.genModelItemId();
         setBasePoint( desc.getBasePoint() );
         load(mdh);
     }
@@ -178,5 +211,22 @@ public class PhysModelItem extends Group {
         desc.setName( getName() );
         desc.setBasePoint( basePoint );
         return desc;
+    }
+
+    @Override
+    public void act(float delta) {
+        super.act(delta);
+
+        if ( liveBasePoint ) {
+            basePoint.physX = 0;
+            basePoint.physY = 0;
+            for ( BodyItem bi : model.getBodyItems() ) {
+                Vector2 c = bi.getBody().getWorldCenter();
+                basePoint.physX += c.x;
+                basePoint.physY += c.y;
+            }
+            basePoint.physX /= model.getBodyItems().size;
+            basePoint.physY /= model.getBodyItems().size;
+        }
     }
 }

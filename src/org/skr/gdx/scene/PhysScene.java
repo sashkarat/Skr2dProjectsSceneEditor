@@ -15,8 +15,11 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.SerializationException;
 import org.skr.gdx.Environment;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.physmodel.BodyItem;
 import org.skr.gdx.physmodel.PhysModel;
 import org.skr.gdx.utils.ModShapeRenderer;
+
+import java.util.HashMap;
 
 /**
  * Created by rat on 02.08.14.
@@ -46,6 +49,11 @@ public class PhysScene extends Group {
     Group backLayersGroup = new Group();
     Group frontLayersGroup = new Group();
 
+    int modelItemIdCounter = -1;
+
+    HashMap<String, Array<PhysModelItem> > selectionGroups = new HashMap<String, Array<PhysModelItem>>();
+
+
     ModShapeRenderer shapeRenderer = null;
 
     boolean activePhysics = false;
@@ -66,6 +74,10 @@ public class PhysScene extends Group {
         cameraController = new CameraController( this );
         shapeRenderer = new ModShapeRenderer();
         camera = (OrthographicCamera) stage.getCamera();
+    }
+
+    public int genModelItemId() {
+        return ++modelItemIdCounter;
     }
 
     public boolean isActivePhysics() {
@@ -213,6 +225,25 @@ public class PhysScene extends Group {
         backLayersGroup.removeActor(layer);
     }
 
+    public PhysModelItem findModelItem( int id ) {
+        for ( Actor a : getChildren() ) {
+            if ( !(a instanceof PhysModelItem ) )
+                continue;
+
+            PhysModelItem mi = (PhysModelItem) a;
+            if ( mi.getId() != id )
+                continue;
+            return mi;
+        }
+
+        return null;
+    }
+
+
+    public HashMap<String, Array<PhysModelItem>> getSelectionGroups() {
+        return selectionGroups;
+    }
+
     public boolean loadTextureAtlas() {
 
         if ( this.internalTextureAtlasPath.isEmpty() )
@@ -289,6 +320,8 @@ public class PhysScene extends Group {
 
     public boolean loadFromDescription( PhysSceneDescription sd ) {
 
+        selectionGroups.clear();
+
         setName(sd.getName());
         setInternalTextureAtlasPath(sd.getTextureAtlasPath());
         setViewLeft( sd.getViewLeft() );
@@ -329,10 +362,25 @@ public class PhysScene extends Group {
 
         for ( LayerDescription ld : sd.getFrontLayerDescriptions() ) {
             Layer lr = new Layer( this );
-            lr.loadFromDescription( ld );
+            lr.loadFromDescription(ld);
             frontLayersGroup.addActor( lr );
         }
 
+        modelItemIdCounter = sd.getModelItemIdCounter();
+
+        for ( String key : sd.getSelectionGroups().keySet() ) {
+
+            selectionGroups.put( key, new Array<PhysModelItem>() );
+
+            for ( Integer id : sd.getSelectionGroups().get( key ) ) {
+
+                PhysModelItem mi = findModelItem( id );
+                if ( mi == null )
+                    continue;
+
+                selectionGroups.get( key ).add( mi );
+            }
+        }
 
         //TODO: implement method
 
@@ -377,6 +425,21 @@ public class PhysScene extends Group {
                 sd.getFrontLayerDescriptions().add( lr.getDescription() );
             }
         }
+
+
+        sd.setModelItemIdCounter( modelItemIdCounter );
+
+        for ( String key : selectionGroups.keySet() ) {
+
+            sd.getSelectionGroups().put( key, new Array<Integer>());
+
+            for (PhysModelItem mi : selectionGroups.get( key ) ) {
+
+                sd.getSelectionGroups().get( key ).add( mi.getId() );
+            }
+        }
+
+
 
 
         //TODO: implement method
@@ -464,6 +527,9 @@ public class PhysScene extends Group {
     public void removePhysModelItem ( PhysModelItem modelItem ) {
         modelItem.clear();
         removeActor( modelItem );
+        for ( String key : selectionGroups.keySet() ) {
+            selectionGroups.get(key).removeValue( modelItem, true );
+        }
     }
 
 

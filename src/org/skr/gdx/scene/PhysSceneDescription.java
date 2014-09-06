@@ -2,6 +2,8 @@ package org.skr.gdx.scene;
 
 import com.badlogic.gdx.utils.Array;
 
+import java.util.HashMap;
+
 /**
  * Created by rat on 02.08.14.
  */
@@ -20,6 +22,9 @@ public class PhysSceneDescription {
     Array<LayerDescription> frontLayerDescriptions = new Array<LayerDescription>();
 
     Array< PhysModelItemDescription> modelItemDescriptions = new Array<PhysModelItemDescription>();
+    int modelItemIdCounter;
+    HashMap< String, Array<Integer> > selectionGroups = new HashMap<String, Array<Integer>>();
+
 
     public String getName() {
         return name;
@@ -115,5 +120,21 @@ public class PhysSceneDescription {
 
     public void setModelItemDescriptions(Array<PhysModelItemDescription> modelItemDescriptions) {
         this.modelItemDescriptions = modelItemDescriptions;
+    }
+
+    public int getModelItemIdCounter() {
+        return modelItemIdCounter;
+    }
+
+    public void setModelItemIdCounter(int modelItemIdCounter) {
+        this.modelItemIdCounter = modelItemIdCounter;
+    }
+
+    public HashMap<String, Array<Integer>> getSelectionGroups() {
+        return selectionGroups;
+    }
+
+    public void setSelectionGroups(HashMap<String, Array<Integer>> selectionGroups) {
+        this.selectionGroups = selectionGroups;
     }
 }

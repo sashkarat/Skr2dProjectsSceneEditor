@@ -1,5 +1,6 @@
 package org.skr.Skr2dProjectsSceneEditor.gdx.controllers;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -17,27 +18,36 @@ public class ModelsController  extends Controller{
 
 
     Array<PhysModelItem> modelItems = new Array<PhysModelItem>();
+    Array< Boolean > prevActiveStates = new Array<Boolean>();
+
 
     public ModelsController(Stage stage) {
         super(stage);
         setEnableBbControl( false );
     }
 
-
     public void clearSelection() {
         modelItems.clear();
+        prevActiveStates.clear();
     }
 
     public boolean addModelItem( PhysModelItem  modelItem ) {
-        if ( modelItems.contains( modelItem, true ) ) {
+
+        int indexof = modelItems.indexOf( modelItem, true );
+
+        if ( indexof >= 0 ) {
             modelItems.removeValue( modelItem, true );
+            prevActiveStates.removeIndex( indexof );
             return false;
         }
         modelItems.add( modelItem );
+        prevActiveStates.add( modelItem.isActive() );
         return true;
     }
 
-
+    public Array<PhysModelItem> getModelItems() {
+        return modelItems;
+    }
 
     @Override
     protected void translateRendererToObject() {
@@ -71,6 +81,40 @@ public class ModelsController  extends Controller{
     @Override
     protected void updateControlPointFromObject(ControlPoint cp) {
 
+    }
+
+    private boolean activeStatesChanged = false;
+
+    @Override
+    public boolean touchDown(Vector2 stageCoord) {
+        boolean res = super.touchDown(stageCoord);
+        if ( getSelectedControlPoint() == getPosControlPoint() ) {
+            for ( int i = 0; i < modelItems.size; i++ ) {
+                prevActiveStates.set(i, modelItems.get(i).isActive());
+                modelItems.get(i).setActive( false );
+            }
+
+            activeStatesChanged = true;
+        }
+
+        return res;
+    }
+
+    @Override
+    public boolean touchUp(Vector2 stageCoord, int button) {
+
+        boolean res = super.touchUp(stageCoord, button);
+
+        if ( activeStatesChanged  ) {
+
+            for ( int i = 0; i < modelItems.size; i++ ) {
+                modelItems.get(i).setActive( prevActiveStates.get(i) );
+            }
+
+            activeStatesChanged = false;
+        }
+
+        return res;
     }
 
     @Override
@@ -113,5 +157,30 @@ public class ModelsController  extends Controller{
         tVec1.scl(1f / modelItems.size);
 
         cp.setPos( tVec1.x, tVec1.y );
+
     }
+
+    public void translateModelsToViewX( float viewX ) {
+        translateModelsToView( viewX, getPosControlPoint().getY() );
+    }
+
+    public void translateModelsToViewY( float viewY) {
+        translateModelsToView( getPosControlPoint().getX(), viewY );
+    }
+
+    public void translateModelsToView( float viewX, float viewY) {
+
+        float offsetViewX = viewX - getPosControlPoint().getX();
+        float offsetViewY = viewY - getPosControlPoint().getY();
+
+        for ( PhysModelItem mi : modelItems ) {
+            float x = mi.getBasePointViewX();
+            float y = mi.getBasePointViewY();
+            x += offsetViewX;
+            y += offsetViewY;
+
+            mi.translateBasePointTo_view( x, y );
+        }
+    }
+
 }
