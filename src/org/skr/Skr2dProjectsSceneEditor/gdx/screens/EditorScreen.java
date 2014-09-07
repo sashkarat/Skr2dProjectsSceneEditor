@@ -33,6 +33,15 @@ import java.lang.reflect.ParameterizedType;
  */
 public class EditorScreen extends BaseScreen {
 
+    public enum ControllableObjectType {
+        NONE,
+        AAG,
+        TILED_ACTOR,
+        LAYER,
+        MODEL_ITEM,
+        SELECTION_ARRAY
+    }
+
     public static enum SelectionMode {
         DISABLED,
         MODEL_ITEM
@@ -129,7 +138,7 @@ public class EditorScreen extends BaseScreen {
         this.modelsController = modelsController;
     }
 
-    public void setControllableObject( Object object ) {
+    public void setControllableObject( Object object, ControllableObjectType type ) {
 
         if ( aagController.getAag() != null ) {
             aagController.getAag().setUserObject( null );
@@ -141,33 +150,39 @@ public class EditorScreen extends BaseScreen {
             return;
         }
 
-        if ( object instanceof AnimatedActorGroup ) {
-            aagController.setAag((AnimatedActorGroup) object);
-            currentController = aagController;
-            currentLayer = findParentLayer((Actor) object);
-        } else if ( object instanceof TiledActor) {
-            currentController = null;
-            currentLayer = findParentLayer((Actor) object);
-        } else if ( object instanceof PhysModelItem ) {
-            modelsController.addModelItem((PhysModelItem) object);
-            currentController = modelsController;
-            currentLayer = null;
-        } else if (object instanceof Layer) {
-            currentLayer = (Layer) object;
-        } else if ( object instanceof Array ) {
-            // TODO: recode this
+        switch ( type ) {
 
-            Gdx.app.log("EditorScreen.setControllableObject", "Array Class: " + object.getClass().getComponentType() );
-
-            Array<PhysModelItem> modelItems = (Array<PhysModelItem>) object;
-            for ( PhysModelItem mi : modelItems )
-                modelsController.addModelItem( mi );
-            currentLayer = null;
-            currentController = modelsController;
-        } else {
-            currentController = null;
-            currentLayer = null;
+            case NONE:
+                currentController = null;
+                currentLayer = null;
+                break;
+            case AAG:
+                aagController.setAag((AnimatedActorGroup) object);
+                currentController = aagController;
+                currentLayer = findParentLayer((Actor) object);
+                break;
+            case TILED_ACTOR:
+                currentController = null;
+                currentLayer = findParentLayer((Actor) object);
+                break;
+            case LAYER:
+                currentLayer = (Layer) object;
+                break;
+            case MODEL_ITEM:
+                modelsController.addModelItem((PhysModelItem) object);
+                currentController = modelsController;
+                currentLayer = null;
+                break;
+            case SELECTION_ARRAY:
+                Array<PhysModelItem> modelItems = (Array<PhysModelItem>) object;
+                for ( PhysModelItem mi : modelItems )
+                    modelsController.addModelItem( mi );
+                currentLayer = null;
+                currentController = modelsController;
+                break;
         }
+
+
 
         if ( currentLayer != null ) {
             Gdx.app.log("EditorScreen.setControllableObject", "Layer: " + currentLayer.getName() );

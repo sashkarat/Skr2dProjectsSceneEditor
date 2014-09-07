@@ -18,6 +18,8 @@ import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.scene.*;
 
 import javax.swing.*;
+import javax.swing.event.CellEditorListener;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -31,7 +33,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.util.Set;
 
 /**
  * Created by rat on 02.08.14.
@@ -91,8 +92,28 @@ public class MainGui extends JFrame {
     private EditorScreen editorScreen;
 
     private SceneTreeNode selectionGroupsNode;
+    private SceneTreeNode rootSceneNode;
+    private SceneTreeNode modelsNode;
+
+    private class SceneSnapshot {
+        PhysSceneDescription description;
+    }
+
+
+    private Array< SceneSnapshot > snapshots = new Array<SceneSnapshot>();
+    private int lastSnapshotIndex = -1;
+    private boolean sceneChanged = false;
+    private Timer snapshotTimer = new Timer( 2000, new AbstractAction() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            onSnapshotTimer();
+        }
+    });
 
     MainGui() {
+
+
+
 
         cameraDataRefreshTimer = new Timer(1000, new ActionListener() {
             @Override
@@ -105,6 +126,20 @@ public class MainGui extends JFrame {
         for ( EditorScreen.SelectionMode mode : EditorScreen.SelectionMode.values() ) {
             comboSelectionMode.addItem( mode );
         }
+
+        rootPanel.registerKeyboardAction(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                comboSelectionMode.setSelectedItem( EditorScreen.SelectionMode.MODEL_ITEM);
+                changeSelectionMode();
+            }
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_1, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+
+        rootPanel.registerKeyboardAction(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                comboSelectionMode.setSelectedItem( EditorScreen.SelectionMode.DISABLED);
+                changeSelectionMode();
+            }
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_0, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 
 
         gApp = new SkrGdxAppSceneEditor();
@@ -122,8 +157,11 @@ public class MainGui extends JFrame {
 
         MainGuiWindowListener guiWindowListener = new MainGuiWindowListener( this );
         addWindowListener(guiWindowListener);
-        guiWindowListener.addTimer( cameraDataRefreshTimer );
+        guiWindowListener.addTimer(cameraDataRefreshTimer);
+        guiWindowListener.addTimer( snapshotTimer );
         PhysScene.setSceneStateListener( sceneStateListener );
+
+        snapshotTimer.start();
 
         for ( EditorScreen.DebugResolution dr : EditorScreen.DebugResolution.values() ) {
             comboDebugViewRectResolution.addItem( dr );
@@ -143,6 +181,18 @@ public class MainGui extends JFrame {
         tableProperties.setDefaultEditor(
                 PropertiesBaseTableModel.Property.class,
                 propertiesCellEditor );
+
+        propertiesCellEditor.addCellEditorListener( new CellEditorListener() {
+            @Override
+            public void editingStopped(ChangeEvent e) {
+                makeSnapshot();
+            }
+
+            @Override
+            public void editingCanceled(ChangeEvent e) {
+
+            }
+        });
         tableProperties.setDefaultRenderer(PropertiesBaseTableModel.Property.class,
                 new PropertiesTableCellRenderer() );
 
@@ -167,13 +217,13 @@ public class MainGui extends JFrame {
         btnAddNode.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                addNode();
+                processNewNodeCreation();
             }
         });
         btnRemoveNode.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                removeNode();
+                processNodesRemoving();
             }
         });
 
@@ -198,7 +248,7 @@ public class MainGui extends JFrame {
         btnDuplicateNode.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                duplicateNode();
+                processNodesDuplication();
             }
         });
         comboDebugViewRectResolution.addActionListener(new ActionListener() {
@@ -300,6 +350,30 @@ public class MainGui extends JFrame {
         });
         menu.add(mnuItem);
 
+        menuBar.add( menu );
+
+
+        menu = new JMenu("Edit");
+
+        mnuItem = new JMenuItem("Undo");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, ActionEvent.CTRL_MASK) );
+        mnuItem.addActionListener( new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                processUndo();
+            }
+        });
+        menu.add(mnuItem);
+
+        mnuItem = new JMenuItem("Redo");
+        mnuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK) );
+        mnuItem.addActionListener( new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                processRedo();
+            }
+        });
+        menu.add(mnuItem);
 
         menuBar.add( menu );
         setJMenuBar(menuBar);
@@ -364,6 +438,7 @@ public class MainGui extends JFrame {
                 public void run() {
                     ((SkrGdxAppSceneEditor)SkrGdxAppSceneEditor.get()).getEditorScreen().setScene(MainGui.this.scene);
                     MainGui.this.sceneToGui();
+
                 }
             });
 
@@ -378,10 +453,21 @@ public class MainGui extends JFrame {
 
     void clear() {
         PhysWorld.clearPrimaryWorld();
+        editorScreen.setControllableObject(null, EditorScreen.ControllableObjectType.NONE);
+        editorScreen.getModelsController().clearSelection();
     }
 
 
     void createNewScene() {
+
+        if ( scene != null ) {
+            int n = JOptionPane.showOptionDialog(this, "Do you want to close current scene?", "Create  new scene",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null );
+
+            if ( n != 0 ) {
+                return;
+            }
+        }
 
         clear();
 
@@ -398,8 +484,10 @@ public class MainGui extends JFrame {
                     scene = null;
                     return;
                 }
-                ((SkrGdxAppSceneEditor)SkrGdxAppSceneEditor.get()).getEditorScreen().setScene( scene );
+                editorScreen.setScene(scene);
                 MainGui.this.sceneToGui();
+                resetSnapshotHistory();
+                makeSnapshot();
             }
         });
     }
@@ -409,6 +497,16 @@ public class MainGui extends JFrame {
 
 
     void loadScene() {
+
+        if ( scene != null ) {
+            int n = JOptionPane.showOptionDialog(this, "Do you want to close current scene?", "Load scene",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null );
+
+            if ( n != 0 ) {
+                return;
+            }
+        }
+
         clear();
 
         final JFileChooser fch = new JFileChooser();
@@ -438,26 +536,28 @@ public class MainGui extends JFrame {
             @Override
             public void run() {
                 PhysScene.loadFromFile(Gdx.files.internal(finalSb.toString()));
+                resetSnapshotHistory();
+                makeSnapshot();
             }
         });
     }
 
 
-    void saveScene() {
+    boolean saveScene() {
         if ( scene == null )
-            return;
+            return false;
         if ( sceneAbsolutePath.isEmpty() ) {
-            saveSceneAs();
-            return;
+            return saveSceneAs();
         }
 
         PhysScene.saveToFile(scene, Gdx.files.absolute(sceneAbsolutePath) );
+        return true;
     }
 
-    void saveSceneAs() {
+    boolean saveSceneAs() {
 
         if ( scene == null )
-            return;
+            return false;
 
         final JFileChooser fch = new JFileChooser();
         int res;
@@ -468,7 +568,7 @@ public class MainGui extends JFrame {
         res = fch.showSaveDialog(this);
 
         if ( res != JFileChooser.APPROVE_OPTION )
-            return;
+            return false;
 
         File fl = fch.getSelectedFile();
 
@@ -485,6 +585,7 @@ public class MainGui extends JFrame {
 
 
         PhysScene.saveToFile( scene, Gdx.files.absolute(sceneAbsolutePath) );
+        return true;
     }
 
     //         Gui processing
@@ -524,30 +625,30 @@ public class MainGui extends JFrame {
             return;
         }
 
-        SceneTreeNode rootNode = new SceneTreeNode(SceneTreeNode.Type.ROOT, scene );
+        rootSceneNode = new SceneTreeNode(SceneTreeNode.Type.ROOT, scene );
 
-        treeSceneModel = new DefaultTreeModel( rootNode );
+        treeSceneModel = new DefaultTreeModel( rootSceneNode );
 
 
-        SceneTreeNode modelsNode = new SceneTreeNode(SceneTreeNode.Type.MODELS, scene.getModelDescriptionHandlers(), ": MODELS" );
+        modelsNode = new SceneTreeNode(SceneTreeNode.Type.MODELS, scene.getModelDescriptionHandlers(), ": MODELS" );
         loadModelsGroup( modelsNode );
-        rootNode.add( modelsNode );
+        rootSceneNode.add(modelsNode);
 
         SceneTreeNode layersGroupNode = new SceneTreeNode( SceneTreeNode.Type.LAYERS_GROUP,
                 scene.getFrontLayersGroup() );
         loadLayersGroupNodes(layersGroupNode);
-        rootNode.add( layersGroupNode );
+        rootSceneNode.add(layersGroupNode);
 
         layersGroupNode = new SceneTreeNode(SceneTreeNode.Type.LAYERS_GROUP,
                 scene.getBackLayersGroup() );
         loadLayersGroupNodes( layersGroupNode );
-        rootNode.add( layersGroupNode );
+        rootSceneNode.add(layersGroupNode);
 
         selectionGroupsNode = new SceneTreeNode(SceneTreeNode.Type.SELECTION_GROUPS,
                 scene.getSelectionGroups(), ": SELECTION GROUPS" );
         loadSelectionGroupsNodes( selectionGroupsNode );
 
-        rootNode.add( selectionGroupsNode );
+        rootSceneNode.add(selectionGroupsNode);
 
 
 
@@ -726,6 +827,8 @@ public class MainGui extends JFrame {
         if ( node == null )
             return;
 
+        EditorScreen.ControllableObjectType coType = EditorScreen.ControllableObjectType.NONE;
+
         switch ( node.getType() ) {
             case ROOT:
                 scenePropertiesTableModel.setScene( scene );
@@ -734,6 +837,7 @@ public class MainGui extends JFrame {
             case LAYER:
                 layerPropertiesTableModel.setLayer((Layer) node.getUserObject());
                 tableProperties.setModel( layerPropertiesTableModel );
+                coType = EditorScreen.ControllableObjectType.LAYER;
                 break;
             case MODELS:
                 break;
@@ -743,6 +847,7 @@ public class MainGui extends JFrame {
                 modelItemPropertiesTableModel.setModelItem((PhysModelItem) node.getUserObject());
                 tableProperties.setModel( modelItemPropertiesTableModel );
                 editorScreen.getModelsController().clearSelection();
+                coType = EditorScreen.ControllableObjectType.MODEL_ITEM;
                 break;
             case LAYERS_GROUP:
                 layersGroupPropertiesTableModel.setGroup((Group) node.getUserObject());
@@ -751,18 +856,21 @@ public class MainGui extends JFrame {
             case TILED_ACTOR:
                 tiledActorPropertiesTableModel.setTiledActor((TiledActor) node.getUserObject());
                 tableProperties.setModel( tiledActorPropertiesTableModel );
+                coType = EditorScreen.ControllableObjectType.TILED_ACTOR;
                 break;
             case AAG:
                 aagPropertiesTableModel.setAag((org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup)
                         node.getUserObject());
                 aagPropertiesTableModel.setScene( scene );
                 tableProperties.setModel( aagPropertiesTableModel );
+                coType = EditorScreen.ControllableObjectType.AAG;
                 break;
             case SELECTION_GROUPS:
                 break;
             case SELECTION_GROUP:
                 tableProperties.setModel( modelsControllerPropertiesTableModel );
                 editorScreen.getModelsController().clearSelection();
+                coType = EditorScreen.ControllableObjectType.SELECTION_ARRAY;
                 Gdx.app.postRunnable( new Runnable() {
                     @Override
                     public void run() {
@@ -772,7 +880,7 @@ public class MainGui extends JFrame {
                 break;
         }
 
-        editorScreen.setControllableObject( node.getUserObject() );
+        editorScreen.setControllableObject( node.getUserObject(), coType );
     }
 
 
@@ -788,28 +896,29 @@ public class MainGui extends JFrame {
             return;
         }
 
-        if ( type == SceneTreeNode.Type.MODEL_ITEM ||
-                type == SceneTreeNode.Type.SELECTION_GROUP ) {
+        if ( type != SceneTreeNode.Type.MODEL_ITEM && type != SceneTreeNode.Type.SELECTION_GROUP )
+            return;
+        final EditorScreen.ControllableObjectType coType = ( type == SceneTreeNode.Type.MODEL_ITEM)?
+                EditorScreen.ControllableObjectType.MODEL_ITEM : EditorScreen.ControllableObjectType.SELECTION_ARRAY;
 
-            Gdx.app.postRunnable(new Runnable() {
-                @Override
-                public void run() {
-                    editorScreen.getModelsController().clearSelection();
-                    for (TreePath tp : selectionPaths) {
-                        SceneTreeNode node = (SceneTreeNode) tp.getLastPathComponent();
-                        editorScreen.setControllableObject(node.getUserObject());
-                    }
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                editorScreen.getModelsController().clearSelection();
+                for (TreePath tp : selectionPaths) {
+                    SceneTreeNode node = (SceneTreeNode) tp.getLastPathComponent();
+                    editorScreen.setControllableObject(node.getUserObject(), coType );
                 }
-            });
+            }
+        });
 
-            tableProperties.setModel( modelsControllerPropertiesTableModel );
-            Gdx.app.postRunnable( new Runnable() {
-                @Override
-                public void run() {
-                    modelsControllerPropertiesTableModel.fireTableDataChanged();
-                }
-            });
-        }
+        tableProperties.setModel( modelsControllerPropertiesTableModel );
+        Gdx.app.postRunnable( new Runnable() {
+            @Override
+            public void run() {
+                modelsControllerPropertiesTableModel.fireTableDataChanged();
+            }
+        });
     }
 
     SceneTreeNode.Type cleanupJTreeSelection() {
@@ -838,13 +947,13 @@ public class MainGui extends JFrame {
         selectionGroupNameDlg.setTitle("Selection Group Name");
     }
 
-    void addNode() {
+    void processNewNodeCreation() {
         if ( scene == null )
             return;
 
         SceneTreeNode parentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
         Object parentObject = parentNode.getUserObject();
-        newNodeDlg.setSize( 500, 450);
+//        newNodeDlg.setSize( 500, 450);
         boolean res = false;
 
         switch( parentNode.getType() ) {
@@ -886,7 +995,7 @@ public class MainGui extends JFrame {
                 break;
         }
 
-        Gdx.app.log("MainGui.addNode", " Res: " + res );
+        Gdx.app.log("MainGui.processNewNodeCreation", " Res: " + res );
 
         if ( !res )
             return;
@@ -894,11 +1003,11 @@ public class MainGui extends JFrame {
         SceneTreeNode newNode = newNodeDlg.getNewNode();
 
         if ( newNode == null ) {
-            Gdx.app.error("MainGui.addNode", "null NewNode");
+            Gdx.app.error("MainGui.processNewNodeCreation", "null NewNode");
             return;
         }
 
-        Gdx.app.log("MainGui.addNode", " New node type: " + newNode.getType() );
+        Gdx.app.log("MainGui.processNewNodeCreation", " New node type: " + newNode.getType() );
 
         switch ( newNode.getType() ) {
 
@@ -935,6 +1044,7 @@ public class MainGui extends JFrame {
 
         parentNode.add( newNode );
         updateTree( newNode, parentNode );
+        makeSnapshot();
     }
 
     private void updateTree( SceneTreeNode newNode, SceneTreeNode parentNode ) {
@@ -953,164 +1063,221 @@ public class MainGui extends JFrame {
 
 
 
-    void duplicateNode() {
+    void processNodesDuplication() {
 
         if ( scene == null )
             return;
-        SceneTreeNode node = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
-        SceneTreeNode parentNode = (SceneTreeNode) node.getParent();
-        SceneTreeNode nodeCpy = null;
-        Layer layer;
 
 
-        switch ( node.getType() ) {
+        TreePath [] selectionPaths = treeScene.getSelectionPaths();
 
-            case ROOT:
-                break;
-            case MODELS:
-                break;
-            case MODEL_DESC_HANDLER:
-                break;
-            case MODEL_ITEM:
+        for ( TreePath tp : selectionPaths ) {
 
-                //TODO: implement that
+            SceneTreeNode node = (SceneTreeNode) tp.getLastPathComponent();
+            SceneTreeNode parentNode = (SceneTreeNode) node.getParent();
+            SceneTreeNode nodeCpy = null;
+            Layer layer;
 
-                break;
-            case LAYERS_GROUP:
-                break;
-            case LAYER:
+            switch (node.getType()) {
 
-                layer = (Layer) node.getUserObject();
-                LayerDescription lDesc = layer.getDescription();
-                Layer lCpy = new Layer( scene );
-                lCpy.loadFromDescription( lDesc );
-
-                nodeCpy = new SceneTreeNode(SceneTreeNode.Type.LAYER, lCpy );
-                loadLayerNodes( nodeCpy );
-
-                Group layersGroup = (Group) parentNode.getUserObject();
-                layersGroup.addActor( lCpy );
-
-
-                break;
-            case TILED_ACTOR:
-                layer = (Layer) parentNode.getUserObject();
-                TiledActor ta = (TiledActor) node.getUserObject();
-                TiledActorDescription tad = ta.getDescription();
-                TiledActor taCpy = new TiledActor( scene );
-                taCpy.loadFromDescription( tad );
-                nodeCpy = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, taCpy);
-                loadTiledActorNodes( nodeCpy );
-                layer.addTiledActor( taCpy );
-                break;
-            case AAG:
-                if ( ! (parentNode.getUserObject() instanceof Group) )
+                case ROOT:
                     break;
+                case MODELS:
+                    break;
+                case MODEL_DESC_HANDLER:
+                    break;
+                case MODEL_ITEM:
+                    if ( parentNode.getType() == SceneTreeNode.Type.MODEL_DESC_HANDLER ) {
+                        PhysModelItem mi = (PhysModelItem) node.getUserObject();
+                        PhysModelItemDescription desc = mi.getDescription();
+                        desc.setId(scene.genModelItemId());
+                        desc.setName(desc.getName() + "Cpy");
+                        PhysModelItem miCpy = scene.addModelItem( desc );
+                        nodeCpy = new SceneTreeNode(SceneTreeNode.Type.MODEL_ITEM, miCpy );
+                    } else if ( parentNode.getType() == SceneTreeNode.Type.SELECTION_GROUP ) {
+                        SceneTreeNode realParentNode = findNode( modelsNode, node.getUserObject() );
+                        if ( realParentNode == null )
+                            continue;
+                        PhysModelItem mi = (PhysModelItem) node.getUserObject();
+                        PhysModelItemDescription desc = mi.getDescription();
+                        desc.setId(scene.genModelItemId());
+                        desc.setName(desc.getName() + "Cpy");
+                        PhysModelItem miCpy = scene.addModelItem( desc );
+                        Array<PhysModelItem> selectionGroup = (Array<PhysModelItem>) parentNode.getUserObject();
+                        selectionGroup.add( miCpy );
+                        SceneTreeNode nodeRealCopy = new SceneTreeNode(SceneTreeNode.Type.MODEL_ITEM, miCpy );
+                        realParentNode.add( nodeRealCopy );
+                        nodeCpy = new SceneTreeNode(SceneTreeNode.Type.MODEL_ITEM, miCpy );
+                    }
 
-                AnimatedActorGroup aag = (AnimatedActorGroup) node.getUserObject();
-                AagDescription aagDesc = aag.getDescription();
-                AnimatedActorGroup aagCpy = new AnimatedActorGroup(aagDesc, scene.getAtlas() );
-                nodeCpy = new SceneTreeNode( SceneTreeNode.Type.AAG, aagCpy );
-                loadAagNodes( nodeCpy );
-                Group gp = (Group) parentNode.getUserObject();
-                gp.addActor( aagCpy );
-                break;
-            case SELECTION_GROUPS:
-                break;
-            case SELECTION_GROUP:
-                //TODO: implement that
-                break;
+                    break;
+                case LAYERS_GROUP:
+                    break;
+                case LAYER:
+
+                    layer = (Layer) node.getUserObject();
+                    LayerDescription lDesc = layer.getDescription();
+                    Layer lCpy = new Layer(scene);
+                    lCpy.loadFromDescription(lDesc);
+
+                    nodeCpy = new SceneTreeNode(SceneTreeNode.Type.LAYER, lCpy);
+                    loadLayerNodes(nodeCpy);
+
+                    Group layersGroup = (Group) parentNode.getUserObject();
+                    layersGroup.addActor(lCpy);
+
+
+                    break;
+                case TILED_ACTOR:
+                    layer = (Layer) parentNode.getUserObject();
+                    TiledActor ta = (TiledActor) node.getUserObject();
+                    TiledActorDescription tad = ta.getDescription();
+                    TiledActor taCpy = new TiledActor(scene);
+                    taCpy.loadFromDescription(tad);
+                    nodeCpy = new SceneTreeNode(SceneTreeNode.Type.TILED_ACTOR, taCpy);
+                    loadTiledActorNodes(nodeCpy);
+                    layer.addTiledActor(taCpy);
+                    break;
+                case AAG:
+                    if (!(parentNode.getUserObject() instanceof Group))
+                        break;
+
+                    AnimatedActorGroup aag = (AnimatedActorGroup) node.getUserObject();
+                    AagDescription aagDesc = aag.getDescription();
+                    AnimatedActorGroup aagCpy = new AnimatedActorGroup(aagDesc, scene.getAtlas());
+                    nodeCpy = new SceneTreeNode(SceneTreeNode.Type.AAG, aagCpy);
+                    loadAagNodes(nodeCpy);
+                    Group gp = (Group) parentNode.getUserObject();
+                    gp.addActor(aagCpy);
+                    break;
+                case SELECTION_GROUPS:
+                    break;
+                case SELECTION_GROUP:
+                    String oldSelectionGroupName = node.getName();
+                    String newSelectionGroupName = selectionGroupNameDlg.execute( oldSelectionGroupName + "Cpy");
+                    if ( !scene.getSelectionGroups().containsKey( newSelectionGroupName ) ) {
+                        scene.getSelectionGroups().put(newSelectionGroupName, new Array<PhysModelItem>());
+                    } else {
+                        break;
+                    }
+
+                    scene.getSelectionGroups().get( newSelectionGroupName ).clear();
+                    scene.getSelectionGroups().get( newSelectionGroupName ).
+                            addAll((Array<PhysModelItem>) node.getUserObject());
+
+                    nodeCpy = new SceneTreeNode(SceneTreeNode.Type.SELECTION_GROUP,
+                            scene.getSelectionGroups().get( newSelectionGroupName), newSelectionGroupName );
+                    loadSelectionGroupNodes(nodeCpy);
+                    break;
+            }
+
+
+            if (nodeCpy == null)
+                continue;
+
+            parentNode.add(nodeCpy);
+            treeSceneModel.nodeStructureChanged(parentNode);
+            treeSceneModel.nodeChanged(nodeCpy);
+            treeScene.setSelectionPath(new TreePath(nodeCpy.getPath()));
         }
-
-
-        if ( nodeCpy == null )
-            return;
-
-        parentNode.add( nodeCpy );
-        treeSceneModel.nodeStructureChanged( parentNode );
-        treeSceneModel.nodeChanged( nodeCpy );
-        treeScene.setSelectionPath( new TreePath( nodeCpy.getPath() ) );
         processJTreeSelection( null );
+        makeSnapshot();
 
     }
 
 
-    void removeNode() {
 
-        //TODO: modify for multi selection
+    void processNodesRemoving() {
 
         if ( scene == null )
             return;
 
-        SceneTreeNode currentNode = (SceneTreeNode) treeScene.getLastSelectedPathComponent();
-        SceneTreeNode parentNode = (SceneTreeNode) currentNode.getParent();
-        Object parentObject = null;
-        if ( parentNode != null )
-            parentObject = parentNode.getUserObject();
+        int n = JOptionPane.showOptionDialog(this, "Are you sure?", "Remove selected!",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null );
 
-        switch ( currentNode.getType() ) {
-            case ROOT:
-                return;
-            case MODELS:
-                return;
-            case MODEL_DESC_HANDLER:
-                final PhysModelDescriptionHandler mdh = (PhysModelDescriptionHandler) currentNode.getUserObject();
-                Gdx.app.postRunnable(new Runnable() {
-                    @Override
-                    public void run() {
-                        scene.removePhysModelDescriptionHandler(mdh);
-                    }
-                });
-                break;
-            case MODEL_ITEM:
+        if ( n != 0 )
+            return;
 
-                if ( parentNode.getType() == SceneTreeNode.Type.SELECTION_GROUP )
+        TreePath [] selectionPaths = treeScene.getSelectionPaths();
+
+        //TODO: insert yes/no dialog
+
+        for ( TreePath tp : selectionPaths ) {
+
+            SceneTreeNode currentNode = (SceneTreeNode) tp.getLastPathComponent() ;
+            SceneTreeNode parentNode = (SceneTreeNode) currentNode.getParent();
+            Object parentObject = null;
+            if ( parentNode != null )
+                parentObject = parentNode.getUserObject();
+
+            switch ( currentNode.getType() ) {
+                case ROOT:
                     return;
-
-                final PhysModelItem modelItem = (PhysModelItem) currentNode.getUserObject();
-                Gdx.app.postRunnable(new Runnable() {
-                    @Override
-                    public void run() {
-                        scene.removePhysModelItem(modelItem);
-                        uploadSelectionGroupsNodes();
-                    }
-                });
-
-                break;
-            case LAYERS_GROUP:
-                return;
-            case LAYER:
-                Layer remLayer = (Layer) currentNode.getUserObject();
-                Group layersGroup = (Group) parentNode.getUserObject();
-                layersGroup.removeActor( remLayer );
-                break;
-            case TILED_ACTOR:
-                TiledActor remTiledActor = (TiledActor) currentNode.getUserObject();
-                Layer parentLayer = (Layer) parentNode.getUserObject();
-                parentLayer.removeTiledActor( remTiledActor );
-                break;
-            case AAG:
-                if ( parentNode.getType() == SceneTreeNode.Type.TILED_ACTOR) {
-                    TiledActor parentTa = (TiledActor) parentNode.getUserObject();
-                    parentTa.setAag(null);
+                case MODELS:
+                    return;
+                case MODEL_DESC_HANDLER:
+                    final PhysModelDescriptionHandler mdh = (PhysModelDescriptionHandler) currentNode.getUserObject();
+                    Gdx.app.postRunnable(new Runnable() {
+                        @Override
+                        public void run() {
+                            scene.removePhysModelDescriptionHandler(mdh);
+                            uploadSelectionGroupsNodes();
+                        }
+                    });
                     break;
-                } else if ( parentObject instanceof Group ) {
-                    Group group = (Group) parentObject;
-                    group.removeActor( (AnimatedActorGroup) currentNode.getUserObject() );
-                }
-            case SELECTION_GROUPS:
-                return;
-            case SELECTION_GROUP:
-                scene.getSelectionGroups().remove( currentNode.getName() );
-                break;
-        }
+                case MODEL_ITEM:
 
-        if ( parentNode != null ) {
-            parentNode.remove(currentNode);
-            treeSceneModel.nodeStructureChanged(parentNode);
-            treeScene.setSelectionPath(new TreePath(parentNode.getPath()));
-            processJTreeSelection(null);
+                    if ( parentNode.getType() == SceneTreeNode.Type.SELECTION_GROUP )
+                        return;
+
+                    final PhysModelItem modelItem = (PhysModelItem) currentNode.getUserObject();
+                    Gdx.app.postRunnable(new Runnable() {
+                        @Override
+                        public void run() {
+                            editorScreen.getModelsController().removeModelItem( modelItem );
+                            scene.removePhysModelItem(modelItem);
+                            uploadSelectionGroupsNodes();
+                        }
+                    });
+
+                    break;
+                case LAYERS_GROUP:
+                    return;
+                case LAYER:
+                    Layer remLayer = (Layer) currentNode.getUserObject();
+                    Group layersGroup = (Group) parentNode.getUserObject();
+                    layersGroup.removeActor( remLayer );
+                    break;
+                case TILED_ACTOR:
+                    TiledActor remTiledActor = (TiledActor) currentNode.getUserObject();
+                    Layer parentLayer = (Layer) parentNode.getUserObject();
+                    parentLayer.removeTiledActor( remTiledActor );
+                    break;
+                case AAG:
+                    if ( parentNode.getType() == SceneTreeNode.Type.TILED_ACTOR) {
+                        TiledActor parentTa = (TiledActor) parentNode.getUserObject();
+                        parentTa.setAag(null);
+
+                    } else if ( parentObject instanceof Group ) {
+                        Group group = (Group) parentObject;
+                        group.removeActor( (AnimatedActorGroup) currentNode.getUserObject() );
+                    }
+                    break;
+                case SELECTION_GROUPS:
+                    return;
+                case SELECTION_GROUP:
+                    scene.getSelectionGroups().remove( currentNode.getName() );
+                    break;
+            }
+
+            if ( parentNode != null ) {
+                parentNode.remove(currentNode);
+                treeSceneModel.nodeStructureChanged(parentNode);
+                treeScene.setSelectionPath(new TreePath(parentNode.getPath()));
+                processJTreeSelection(null);
+            }
         }
+        makeSnapshot();
     }
 
     void sceneToGui() {
@@ -1186,10 +1353,12 @@ public class MainGui extends JFrame {
     void onModelsChangedByController() {
         modelItemPropertiesTableModel.fireTableDataChanged();
         modelsControllerPropertiesTableModel.fireTableDataChanged();
+        setSceneChanged();
     }
 
     void onAagChangedByController() {
         aagPropertiesTableModel.fireTableDataChanged();
+        setSceneChanged();
     }
 
 
@@ -1229,21 +1398,10 @@ public class MainGui extends JFrame {
         if ( name.isEmpty() )
             return;
 
-        Set<String> namesSet = scene.getSelectionGroups().keySet();
-
-        boolean createNew = true;
-
-        for ( String  s : namesSet ) {
-            if ( s.compareTo( name ) == 0 ) {
-                createNew = false;
-                name = s;
-                break;
-            }
-        }
-
-        if ( createNew ) {
+        if ( !scene.getSelectionGroups().containsKey( name ) ) {
             scene.getSelectionGroups().put(name, new Array<PhysModelItem>());
         }
+
 
         scene.getSelectionGroups().get( name ).clear();
         scene.getSelectionGroups().get( name ).addAll( modelsController.getModelItems() );
@@ -1252,9 +1410,90 @@ public class MainGui extends JFrame {
 
     }
 
-    //TODO: hot keys for mouse selection modes
-    //TODO: yes/no dialogs
-    //TODO: undo/redo features
+    void setSceneChanged() {
+        sceneChanged = true;
+    }
+
+    void onSnapshotTimer(){
+        if ( sceneChanged ) {
+            makeSnapshot();
+            sceneChanged = false;
+        }
+    }
+
+    void makeSnapshot() {
+        if ( scene == null )
+            return;
+
+        PhysSceneDescription desc = scene.getDescription();
+        if ( lastSnapshotIndex < snapshots.size - 1 )
+            snapshots.removeRange( lastSnapshotIndex + 1, snapshots.size - 1 );
+        SceneSnapshot snapshot = new SceneSnapshot();
+        snapshot.description = desc;
+        snapshots.add( snapshot );
+        lastSnapshotIndex = snapshots.size - 1;
+        Gdx.app.log("MainGui.makeSnapshot", "lastSnapshotIndex: " + lastSnapshotIndex + " historySize: " + snapshots.size);
+    }
+
+    void resetSnapshotHistory() {
+        snapshots.clear();
+        lastSnapshotIndex = -1;
+    }
+
+    void loadSnapshot( final SceneSnapshot snapshot ) {
+        clear();
+        scene = new PhysScene( PhysWorld.getPrimaryWorld() );
+        Gdx.app.postRunnable( new Runnable() {
+            @Override
+            public void run() {
+                scene.loadFromDescription( snapshot.description );
+                editorScreen.setScene(scene);
+                sceneToGui();
+
+                Gdx.app.log("MainGui.processUndo", "lastSnapshotIndex; " + lastSnapshotIndex);
+            }
+        });
+    }
+
+    void processUndo() {
+
+        if ( scene == null )
+            return;
+
+        if ( lastSnapshotIndex < 1 )
+            return;
+
+        loadSnapshot( snapshots.get( lastSnapshotIndex - 1) );
+        lastSnapshotIndex--;
+    }
+
+    void processRedo() {
+        if ( scene == null )
+            return;
+
+        if ( lastSnapshotIndex >= snapshots.size - 1) {
+            return;
+        }
+
+        loadSnapshot( snapshots.get( lastSnapshotIndex + 1) );
+        lastSnapshotIndex++;
+    }
+
+    public boolean confirmClosure() {
+        if (scene != null) {
+            int n = JOptionPane.showOptionDialog(this, "Do you want to save current scene?", "Close Application",
+                    JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
+            switch ( n  ) {
+                case 0:
+                    return saveScene();
+                case 1:
+                    return true;
+                case 2:
+                    return false;
+            }
+        }
+        return true;
+    }
 
     // ====================== static ================================
 

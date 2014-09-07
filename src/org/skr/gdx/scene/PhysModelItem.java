@@ -18,6 +18,14 @@ public class PhysModelItem extends Group {
         float physY = 0;
         float angleRad = 0;
 
+        public BasePoint() {
+        }
+
+        public BasePoint( BasePoint cpy) {
+            this.physX = cpy.physX;
+            this.physY = cpy.physY;
+            this.angleRad = cpy.angleRad;
+        }
     }
 
     int id = -1;
@@ -27,11 +35,13 @@ public class PhysModelItem extends Group {
     BasePoint basePoint = new BasePoint();
     boolean liveBasePoint = false;
 
-    public PhysModelItem(  PhysScene scene ) {
+    public PhysModelItem(  PhysScene scene, boolean newlyCreated ) {
         this.scene = scene;
         setName("");
-        id = scene.genModelItemId();
+        if ( newlyCreated )
+            id = scene.genModelItemId();
     }
+
 
     public void clear() {
 
@@ -49,6 +59,8 @@ public class PhysModelItem extends Group {
     }
 
     public boolean isActive() {
+        if ( model == null )
+            return false;
         if ( model.getBodyItems().size == 0 )
             return false;
         return model.getBodyItems().get(0).getBody().isActive();
@@ -105,7 +117,7 @@ public class PhysModelItem extends Group {
 
         model = new PhysModel( scene.getWorld(), scene.getAtlas()  );
         model.uploadFromDescription( descriptionHandler.getModelDesc() );
-
+        model.setModelItem( this );
         for ( BodyItem bi : model.getBodyItems() ) {
             addActor( bi );
         }

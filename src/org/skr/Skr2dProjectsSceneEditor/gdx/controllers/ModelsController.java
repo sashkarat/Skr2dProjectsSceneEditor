@@ -45,6 +45,16 @@ public class ModelsController  extends Controller{
         return true;
     }
 
+    public void removeModelItem( PhysModelItem modelItem ) {
+        int indexof = modelItems.indexOf( modelItem, true );
+
+        if ( indexof >= 0 ) {
+            modelItems.removeValue( modelItem, true );
+            prevActiveStates.removeIndex( indexof );
+            return ;
+        }
+    }
+
     public Array<PhysModelItem> getModelItems() {
         return modelItems;
     }

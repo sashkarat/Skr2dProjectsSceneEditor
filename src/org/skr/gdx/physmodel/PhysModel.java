@@ -10,6 +10,8 @@ import com.badlogic.gdx.utils.SerializationException;
 import org.skr.gdx.physmodel.animatedactorgroup.AagDescription;
 import org.skr.gdx.physmodel.animatedactorgroup.AnimatedActorGroup;
 import org.skr.gdx.PhysWorld;
+import org.skr.gdx.scene.PhysModelItem;
+import org.skr.gdx.scene.PhysScene;
 
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.util.UUID;
@@ -22,24 +24,11 @@ public class PhysModel {
 
     static  public class Description {
 
-        Object userObject;
-
         String uuid = "";
-
         String name = "";
         AagDescription backgroundAagDesc = null;
         Array<BodyItemDescription> bodiesDesc = new Array<BodyItemDescription>();
         Array<JointItemDescription> jointsDesc = new Array<JointItemDescription>(00);
-
-        @SuppressWarnings("UnusedDeclaration")
-        public Object getUserObject() {
-            return userObject;
-        }
-
-        @SuppressWarnings("UnusedDeclaration")
-        public void setUserObject(Object userObject) {
-            this.userObject = userObject;
-        }
 
         public String getUuid() {
             return uuid;
@@ -87,6 +76,7 @@ public class PhysModel {
     }
 
     private final World world;
+    private PhysModelItem modelItem;
     protected UUID uuid;
     protected String name = "";
     private AnimatedActorGroup backgroundActor;
@@ -113,14 +103,20 @@ public class PhysModel {
         return this.world;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public TextureAtlas getAtlas() {
         return atlas;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public void setAtlas(TextureAtlas atlas) {
         this.atlas = atlas;
+    }
+
+    public PhysModelItem getModelItem() {
+        return modelItem;
+    }
+
+    public void setModelItem(PhysModelItem modelItem) {
+        this.modelItem = modelItem;
     }
 
     public void changeUuid() {
@@ -282,6 +278,8 @@ public class PhysModel {
                 bi.setOverrideMassData( true );
             }
         }
+
+        bi.setModel( this );
 
         return bi;
     }

@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -26,9 +26,7 @@ import java.util.HashMap;
  */
 
 
-public class PhysScene extends Group {
-
-
+public class PhysScene extends Group implements ContactListener {
 
     World world;
     CameraController cameraController;
@@ -67,6 +65,8 @@ public class PhysScene extends Group {
         this.world = world;
         backLayersGroup.setName("BACK LAYERS");
         frontLayersGroup.setName("FRONT LAYERS");
+        world.setContactListener( this );
+
     }
 
     public void initializeScene( Stage stage ) {
@@ -309,11 +309,20 @@ public class PhysScene extends Group {
             modelDescriptionHandlers.add( mdh );
         }
 
-        PhysModelItem modelItem = new PhysModelItem( this );
+        PhysModelItem modelItem = new PhysModelItem( this, true );
         modelItem.load(mdh);
-
         if ( modelItem.getModel() == null )
             return null;
+        addActor( modelItem );
+        return modelItem;
+    }
+
+    public PhysModelItem addModelItem( PhysModelItemDescription desc) {
+        PhysModelItem modelItem = new PhysModelItem( this, false );
+        modelItem.loadFromDescription( desc );
+        if ( modelItem.getModel() == null ) {
+            return null;
+        }
         addActor( modelItem );
         return modelItem;
     }
@@ -343,14 +352,10 @@ public class PhysScene extends Group {
         }
 
         for ( PhysModelItemDescription md : sd.getModelItemDescriptions() ) {
-            PhysModelItem modelItem = new PhysModelItem( this );
-            modelItem.loadFromDescription( md );
-            if ( modelItem.getModel() == null ) {
+            if ( addModelItem( md ) == null ) {
                 Gdx.app.error("PhysScene.loadFromDescription",
                         "Unable to load PhysModelItem. Item is skipped");
-                continue;
             }
-            addActor( modelItem );
         }
 
 
@@ -444,6 +449,34 @@ public class PhysScene extends Group {
 
         //TODO: implement method
         return sd;
+    }
+
+    @Override
+    public void beginContact(Contact contact) {
+
+    }
+
+    @Override
+    public void endContact(Contact contact) {
+
+    }
+
+    @Override
+    public void preSolve(Contact contact, Manifold oldManifold) {
+
+    }
+
+    @Override
+    public void postSolve(Contact contact, ContactImpulse impulse) {
+        BodyItem biA = (BodyItem) contact.getFixtureA().getBody().getUserData();
+        BodyItem biB = (BodyItem) contact.getFixtureB().getBody().getUserData();
+        float [] normalIs = impulse.getNormalImpulses();
+        float [] tangentIs = impulse.getTangentImpulses();
+        for ( int i = 0; i < impulse.getCount(); i++) {
+//            Gdx.app.log("PhysScene.postSolve", "nI: " + normalIs[i] + " tI: " + tangentIs[i] );
+        }
+
+//        Gdx.app.log("PhysScene.postSolve", "" );
     }
 
 
@@ -573,8 +606,6 @@ public class PhysScene extends Group {
                 viewRight - viewLeft - 20, viewTop - viewBottom - 20);
 
         shapeRenderer.end();
-
-
 
 
     }

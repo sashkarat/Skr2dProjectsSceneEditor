@@ -31,7 +31,7 @@ public class PhysModelItemDescription {
     }
 
     public void setBasePoint(PhysModelItem.BasePoint basePoint) {
-        this.basePoint = basePoint;
+        this.basePoint = new PhysModelItem.BasePoint( basePoint );
     }
 
     public int getId() {

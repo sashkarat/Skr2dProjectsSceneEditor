@@ -34,7 +34,13 @@ public class MainGuiWindowListener implements WindowListener {
     @Override
     public void windowClosing(WindowEvent e) {
 
-        //TODO: add onExit request processing
+        int n = JOptionPane.showOptionDialog(null, "Do you really want to quit?", "Close Application",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null );
+        if ( n!= 0 )
+            return;
+
+        if ( !gui.confirmClosure() )
+            return;
 
         e.getWindow().dispose();
     }

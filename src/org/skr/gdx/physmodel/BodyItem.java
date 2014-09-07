@@ -20,6 +20,11 @@ public class BodyItem extends PhysItem {
     private static int g_id = -1;
 
     private int id = -1;
+    PhysModel model;
+    Body body = null;
+    boolean overrideMassData = false;
+    Array< FixtureSet > fixtureSets = new Array<FixtureSet>();
+    RectangleExt boundingBox = new RectangleExt();
 
     public BodyItem( int id ) {
         this.id = genNextId(id);
@@ -42,13 +47,13 @@ public class BodyItem extends PhysItem {
         return res;
     }
 
-    Body body = null;
+    public PhysModel getModel() {
+        return model;
+    }
 
-    boolean overrideMassData = false;
-
-    Array< FixtureSet > fixtureSets = new Array<FixtureSet>();
-
-    RectangleExt boundingBox = new RectangleExt();
+    public void setModel(PhysModel model) {
+        this.model = model;
+    }
 
     public Body getBody() {
         return body;
@@ -56,6 +61,7 @@ public class BodyItem extends PhysItem {
 
     public void setBody(Body body) {
         this.body = body;
+        body.setUserData( this );
     }
 
     public boolean isOverrideMassData() {

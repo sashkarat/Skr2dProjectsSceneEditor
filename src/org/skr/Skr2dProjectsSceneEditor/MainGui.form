@@ -272,7 +272,7 @@
                   <gridbag weightx="1.0" weighty="0.0"/>
                 </constraints>
                 <properties>
-                  <text value="Grid under the scene"/>
+                  <text value="Grid under the modelItem"/>
                 </properties>
               </component>
               <component id="73d27" class="javax.swing.JCheckBox" binding="chbDebugRender">
