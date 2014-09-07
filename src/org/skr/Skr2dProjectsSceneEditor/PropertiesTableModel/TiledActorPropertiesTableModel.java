@@ -1,8 +1,5 @@
 package org.skr.Skr2dProjectsSceneEditor.PropertiesTableModel;
 
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.math.Matrix3;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.Array;
 import org.skr.gdx.scene.TiledActor;
 
